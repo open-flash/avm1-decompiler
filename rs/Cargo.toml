@@ -1,0 +1,37 @@
+[package]
+name = "avm1-disassembler"
+version = "0.0.7"
+authors = ["Charles Samborski <demurgos@demurgos.net>"]
+description = "Abstract Syntax Tree (AST) for SWF files"
+documentation = "https://github.com/open-flash/swf-tree"
+homepage = "https://github.com/open-flash/swf-tree"
+repository = "https://github.com/open-flash/swf-tree"
+readme = "./README.md"
+keywords = ["ast", "swf"]
+license = "MIT"
+
+[lib]
+name = "swf_tree"
+path = "src/lib.rs"
+
+[[bin]]
+name = "swf-tree"
+path = "src/main.rs"
+
+[dependencies]
+hex = "^0.2.0"
+lazy_static = "^0.2.8"
+libflate = "^0.1.4"
+nom = "^2.2"
+num-traits = "^0.1.37"
+regex = "^0.2.1"
+rust-lzma = "^0.2.1"
+serde = "^1.0.2"
+serde_derive = "^1.0.2"
+serde_json = "^1.0.1"
+avm1-parser = "^0.0.2"
+avm1-tree = "^0.0.15"
+
+[replace]
+"avm1-parser:0.0.2" = { path = "../../avm1-parser/rs" }
+"avm1-tree:0.0.15" = { path = "../../avm1-tree/rs" }
