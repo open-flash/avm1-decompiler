@@ -1,199 +1,202 @@
 import { Avm1Parser } from "avm1-parser";
 import { Action, ActionType } from "avm1-tree";
-import { UintIterator } from "./uint-iterator";
 import { PartialExpr } from "./partial-expr";
 
-const UID_ITERATOR: UintIterator = new UintIterator();
+export interface HalfBoundEdge<E extends Edge = Edge> {
+  readonly to: Node;
+  readonly edge: E;
+}
 
-export interface BoundEdge<E extends CfgEdge = CfgEdge> {
-  from: number;
-  to: number;
-  edge: E;
+export interface BoundEdge<E extends Edge = Edge> extends HalfBoundEdge<E> {
+  readonly from: Node;
 }
 
 // Control flow graph
 export class Cfg {
-  private source: number;
+  private readonly source: SimpleNode;
   // private nodes: Set<number>;
-  private readonly outEdges: Map<number, Map<number, CfgEdge>>;
-  private readonly inEdges: Map<number, Map<number, CfgEdge>>;
+  // private readonly nodes: Map<number, Node>;
+  private readonly inEdges: Map<Node, Map<Node, Edge>>;
 
-  constructor() {
-    this.outEdges = new Map();
+  private constructor() {
+    // this.nodes = new Map();
     this.inEdges = new Map();
-    this.source = UID_ITERATOR.next().value;
+    this.source = createSimpleNode() as any as SimpleNode;
   }
 
   public static fromAvm1(avm1: Uint8Array): Cfg {
-    const result: Cfg = new Cfg();
-    const source: number = result.getSource();
+    const cfg: Cfg = new Cfg();
+    const source: SimpleNode = cfg.getSource();
     const avm1Parser: Avm1Parser = new Avm1Parser(avm1);
-    const offsetToId: Map<number, number> = new Map([[0, source]]);
-    const closedSet: Set<number> = new Set();
+    const offsetToNode: Map<number, IncompleteSimpleNode | SimpleNode> = new Map([[0, source]]);
     const openSet: number[] = [0];
     while (openSet.length > 0) {
       const curOffset: number = openSet.pop()!;
-      const curId: number = offsetToId.get(curOffset)!;
-      closedSet.add(curOffset);
+      const curNode: IncompleteSimpleNode = offsetToNode.get(curOffset)! as IncompleteSimpleNode;
+      // TODO: Assert `curNode.out` is undefined
       const action: Action | undefined = avm1Parser.readAt(curOffset);
       if (action === undefined) {
         continue;
       }
       switch (action.action) {
         case ActionType.If: {
-          const testId: number = result.appendTestEdge(curId);
+          const [ifFalseNode, ifTrueNode] = cfg.appendIf(curNode);
           const falseOffset: number = avm1Parser.getBytePos();
-          let falseId: number | undefined = offsetToId.get(falseOffset);
-          if (falseId === undefined) {
-            falseId = result.appendIfFalseEdge(testId);
+          const falseTarget: IncompleteSimpleNode | SimpleNode | undefined = offsetToNode.get(falseOffset);
+          if (falseTarget === undefined) {
             openSet.push(falseOffset);
-            offsetToId.set(falseOffset, falseId);
+            offsetToNode.set(falseOffset, ifFalseNode);
           } else {
-            result.addIfFalseEdge(testId, falseId);
+            cfg.addSimpleEdge(ifFalseNode, falseTarget as any);
           }
           const trueOffset: number = falseOffset + action.offset;
-          let trueId: number | undefined = offsetToId.get(trueOffset);
-          if (trueId === undefined) {
-            trueId = result.appendIfTrueEdge(testId);
+          const trueTarget: IncompleteSimpleNode | SimpleNode | undefined = offsetToNode.get(trueOffset);
+          if (trueTarget === undefined) {
             openSet.push(trueOffset);
-            offsetToId.set(trueOffset, trueId);
+            offsetToNode.set(trueOffset, ifTrueNode);
           } else {
-            result.addIfTrueEdge(testId, trueId);
+            cfg.addSimpleEdge(ifTrueNode, trueTarget as any);
           }
           break;
         }
         case ActionType.Jump: {
           const nextOffset: number = avm1Parser.getBytePos() + action.offset;
-          let nextId: number | undefined = offsetToId.get(nextOffset);
-          if (nextId === undefined) {
-            nextId = result.appendSimpleEdge(curId);
+          const nextNode: IncompleteSimpleNode | SimpleNode | undefined = offsetToNode.get(nextOffset);
+          if (nextNode === undefined) {
             openSet.push(nextOffset);
-            offsetToId.set(nextOffset, nextId);
+            offsetToNode.set(nextOffset, createSimpleNode());
           } else {
-            result.addSimpleEdge(curId, nextId);
+            cfg.addSimpleEdge(curNode, nextNode as any);
           }
           break;
         }
         default: {
-          const nextOffset: number = avm1Parser.getBytePos();
-          let nextId: number | undefined = offsetToId.get(nextOffset);
-          if (nextId === undefined) {
-            nextId = result.appendActionEdge(curId, action);
-            openSet.push(nextOffset);
-            offsetToId.set(nextOffset, nextId);
+          const nextNode: IncompleteSimpleNode = cfg.appendActionEdge(curNode, action);
+          const targetOffset: number = avm1Parser.getBytePos();
+          const targetNode: IncompleteSimpleNode | SimpleNode | undefined = offsetToNode.get(targetOffset);
+          if (targetNode === undefined) {
+            openSet.push(targetOffset);
+            offsetToNode.set(targetOffset, nextNode);
           } else {
-            result.addActionEdge(curId, nextId, action);
+            cfg.addSimpleEdge(nextNode, targetNode as any);
           }
           break;
         }
       }
     }
 
-    return result;
+    return cfg;
   }
 
-  addIfFalseEdge(from: number, to: number): void {
-    const edge: IfFalse = {type: CfgEdgeType.IfFalse};
-    this.addEdge(from, to, edge);
+  addSimpleEdge(from: IncompleteSimpleNode, to: Node): void {
+    const edge: SimpleEdge = {type: EdgeType.Simple};
+    (from as any).out = {to, edge};
+    this.setInEdge(from as any, to, edge);
   }
 
-  appendIfFalseEdge(from: number): number {
-    const to: number = this.createNode();
-    this.addIfFalseEdge(from, to);
-    return to;
+  appendActionEdge(from: IncompleteSimpleNode, action: Action): IncompleteSimpleNode {
+    const edge: ActionEdge = {type: EdgeType.Action, action};
+    return this.appendEdge(from, edge);
   }
 
-  addIfTrueEdge(from: number, to: number): void {
-    const edge: IfTrue = {type: CfgEdgeType.IfTrue};
-    this.addEdge(from, to, edge);
+  appendExpressionEdge(from: IncompleteSimpleNode, expression: PartialExpr): IncompleteSimpleNode {
+    const edge: ExpressionEdge = {type: EdgeType.Expression, expression};
+    return this.appendEdge(from, edge);
   }
 
-  appendIfTrueEdge(from: number): number {
-    const to: number = this.createNode();
-    this.addIfTrueEdge(from, to);
-    return to;
+  appendIf(from: IncompleteSimpleNode): [IncompleteSimpleNode, IncompleteSimpleNode] {
+    const ifTrueEdge: IfTrueEdge = {type: EdgeType.IfTrue};
+    const ifTrueNode: IncompleteSimpleNode = createSimpleNode();
+    const ifFalseEdge: IfFalseEdge = {type: EdgeType.IfFalse};
+    const ifFalseNode: IncompleteSimpleNode = createSimpleNode();
+
+    const ifTestEdge: IfTestEdge = {type: EdgeType.IfTest};
+    const ifNode: IfNode = {
+      type: NodeType.If,
+      outTrue: {to: ifTrueNode as any, edge: ifTrueEdge},
+      outFalse: {to: ifFalseNode as any, edge: ifFalseEdge},
+    };
+
+    (from as any).out = {to: ifNode, edge: ifTestEdge};
+    this.setInEdge(from as any, ifNode, ifTestEdge);
+    this.setInEdge(ifNode, ifTrueNode as any, ifTrueEdge);
+    this.setInEdge(ifNode, ifFalseNode as any, ifFalseEdge);
+
+    return [ifFalseNode, ifTrueNode];
   }
 
-  addSimpleEdge(from: number, to: number): void {
-    const edge: SimpleEdge = {type: CfgEdgeType.Simple};
-    this.addEdge(from, to, edge);
-  }
-
-  appendSimpleEdge(from: number): number {
-    const to: number = this.createNode();
-    this.addSimpleEdge(from, to);
-    return to;
-  }
-
-  addActionEdge(from: number, to: number, action: Action): void {
-    const edge: ActionEdge = {type: CfgEdgeType.Action, action};
-    this.addEdge(from, to, edge);
-  }
-
-  appendActionEdge(from: number, action: Action): number {
-    const to: number = this.createNode();
-    this.addActionEdge(from, to, action);
-    return to;
-  }
-
-  addExpressionEdge(from: number, to: number, expression: PartialExpr): void {
-    const edge: ExpressionEdge = {type: CfgEdgeType.Expression, expression};
-    this.addEdge(from, to, edge);
-  }
-
-  appendExpressionEdge(from: number, expression: PartialExpr): number {
-    const to: number = this.createNode();
-    this.addExpressionEdge(from, to, expression);
-    return to;
-  }
-
-  addTestEdge(from: number, to: number): void {
-    const edge: TestEdge = {type: CfgEdgeType.Test};
-    this.addEdge(from, to, edge);
-  }
-
-  appendTestEdge(from: number): number {
-    const to: number = this.createNode();
-    this.addTestEdge(from, to);
-    return to;
-  }
-
-  getSource(): number {
+  getSource(): SimpleNode {
     return this.source;
   }
 
-  * iterEdges(): IterableIterator<BoundEdge> {
-    const closedSet: Set<number> = new Set();
-    const openSet: number[] = [this.source];
-    while (openSet.length > 0) {
-      const from: number = openSet.pop()!;
-      const outEdges: Map<number, CfgEdge> | undefined = this.outEdges.get(from);
-      if (outEdges === undefined) {
-        continue;
-      }
-      for (const [to, edge] of outEdges) {
-        yield {from, to, edge};
-        if (!closedSet.has(to)) {
-          openSet.push(to);
+  * getOutEdges(from: Node): IterableIterator<BoundEdge> {
+    switch (from.type) {
+      case NodeType.If:
+        yield {from, ...from.outTrue};
+        yield {from, ...from.outFalse};
+        break;
+      case NodeType.Simple:
+        if (from.out !== undefined) {
+          yield {from, ...from.out};
         }
+        break;
+      case NodeType.End:
+        break;
+      default:
+        throw new Error(`Unexpected NodeType value: ${(from as any).type}`);
+    }
+  }
+
+  * iterEdges(): IterableIterator<BoundEdge> {
+    const closedSet: Set<Node> = new Set();
+    const openSet: Node[] = [this.source];
+    while (openSet.length > 0) {
+      const from: Node = openSet.pop()!;
+      for (const outEdge of this.getOutEdges(from)) {
+        if (!closedSet.has(outEdge.to)) {
+          openSet.push(outEdge.to);
+        }
+        yield outEdge;
       }
       closedSet.add(from);
     }
   }
 
-  public removeEdge(from: number, to: number): void {
-    this.outEdges.delete(from);
-    this.inEdges.delete(to);
+  public replaceOutEdge(from: SimpleNode, edges: ReadonlyArray<Edge>): void {
+    const to: Node = from.out.to;
+    this.unsetInEdge(from, to);
+    if (edges.length === 0) {
+      const edge: SimpleEdge = {type: EdgeType.Simple};
+      from.out = {to, edge};
+      this.setInEdge(from, to, edge);
+      return;
+    }
+    let curTo: Node = to;
+    for (let i: number = edges.length - 1; i >= 0; i--) {
+      const edge: Edge = edges[i];
+      if (i === 0) {
+        from.out = {to: curTo, edge};
+        this.setInEdge(from, curTo, edge);
+      } else {
+        const from: SimpleNode = {
+          type: NodeType.Simple,
+          out: {to: curTo, edge},
+        };
+        this.setInEdge(from, curTo, edge);
+        curTo = from;
+      }
+    }
   }
 
-  public addEdge(from: number, to: number, edge: CfgEdge): void {
-    let outEdges: Map<number, CfgEdge> | undefined = this.outEdges.get(from);
-    if (outEdges === undefined) {
-      outEdges = new Map();
-      this.outEdges.set(from, outEdges);
-    }
-    outEdges.set(to, edge);
-    let inEdges: Map<number, CfgEdge> | undefined = this.inEdges.get(to);
+  public appendEdge(from: IncompleteSimpleNode, edge: Edge): IncompleteSimpleNode {
+    const to: IncompleteSimpleNode = createSimpleNode();
+    (from as any).out = {to, edge};
+    this.setInEdge(from as any, to as any, edge);
+    return to;
+  }
+
+  private setInEdge(from: Node, to: Node, edge: Edge): void {
+    let inEdges: Map<Node, Edge> | undefined = this.inEdges.get(to);
     if (inEdges === undefined) {
       inEdges = new Map();
       this.inEdges.set(to, inEdges);
@@ -201,109 +204,92 @@ export class Cfg {
     inEdges.set(from, edge);
   }
 
-  private createNode(): number {
-    return UID_ITERATOR.next().value;
+  private unsetInEdge(from: Node, to: Node): void {
+    const inEdges: Map<Node, Edge> | undefined = this.inEdges.get(to);
+    if (inEdges !== undefined) {
+      inEdges.delete(from);
+    }
   }
 }
 
-export type CfgEdge = ActionEdge | ExpressionEdge | IfFalse | IfTrue | SimpleEdge | SubCfgEdge | TestEdge;
+export type Node = EndNode | IfNode | SimpleNode;
 
-export enum CfgEdgeType {
+export enum NodeType {
+  End,
+  If,
+  Simple,
+}
+
+export interface NodeBase {
+  constants?: Map<string, string>;
+  stack?: any;
+}
+
+export interface EndNode extends NodeBase {
+  type: NodeType.End;
+}
+
+export interface IfNode extends NodeBase {
+  type: NodeType.If;
+  outTrue: HalfBoundEdge;
+  outFalse: HalfBoundEdge;
+}
+
+function createSimpleNode(): IncompleteSimpleNode {
+  return {type: NodeType.Simple, out: undefined};
+}
+
+export interface IncompleteSimpleNode extends NodeBase {
+  type: NodeType.Simple;
+  out: undefined;
+}
+
+export interface SimpleNode extends NodeBase {
+  type: NodeType.Simple;
+  out: HalfBoundEdge;
+}
+
+export type Edge = ActionEdge | ExpressionEdge | IfFalseEdge | IfTrueEdge | SimpleEdge | SubCfgEdge | IfTestEdge;
+
+export enum EdgeType {
   Action,
   IfTrue,
   IfFalse,
   Expression,
   Simple,
   Sub,
-  Test,
+  IfTest,
 }
 
 export interface SimpleEdge {
-  readonly type: CfgEdgeType.Simple;
+  readonly type: EdgeType.Simple;
 }
 
-export interface IfTrue {
-  readonly type: CfgEdgeType.IfTrue;
+export interface IfTrueEdge {
+  readonly type: EdgeType.IfTrue;
 }
 
-export interface IfFalse {
-  readonly type: CfgEdgeType.IfFalse;
+export interface IfFalseEdge {
+  readonly type: EdgeType.IfFalse;
 }
 
-export interface TestEdge {
-  readonly type: CfgEdgeType.Test;
+/**
+ * Represents an edge consuming the test of a `JumpIf` action.
+ */
+export interface IfTestEdge {
+  readonly type: EdgeType.IfTest;
 }
 
 export interface ActionEdge<A extends Action = Action> {
-  readonly type: CfgEdgeType.Action;
+  readonly type: EdgeType.Action;
   readonly action: A;
 }
 
 export interface SubCfgEdge {
-  readonly type: CfgEdgeType.Sub;
+  readonly type: EdgeType.Sub;
 }
 
 export interface ExpressionEdge {
-  readonly type: CfgEdgeType.Expression;
+  readonly type: EdgeType.Expression;
   readonly expression: PartialExpr;
 }
-
-// struct
-// FlowGraph
-// {
-//   source_block: Block,
-//     blocks
-// :
-//   Vec < Block >,
-// }
-//
-// /**
-//  * This block corresponds to the end of the script.
-//  */
-// struct
-// TerminalBlock
-// {
-// }
-//
-// /**
-//  * This basic block leads to an other basic block.
-//  */
-// struct
-// JumpBlock
-// {
-// }
-//
-// /**
-//  * There are two possible next basick blocks. The destination is chosen
-//  * depending on a test operand.
-//  */
-// struct
-// ConditionalJumpBlock
-// {
-// }
-//
-// /**
-//  * This basic returns a value from the current function.
-//  */
-// struct
-// ReturnBlock
-// {
-// }
-//
-// struct
-// TryBlock
-// {
-// }
-//
-// struct
-// WithBlock
-// {
-// }
-//
-// enum Block {
-//   ConditionalJumpBlock,
-//   JumpBlock,
-//   TerminalBlock,
-//   TryBlock,
-//   WithBlock,
-// }

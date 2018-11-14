@@ -1,7 +1,7 @@
 import { ActionType, Value, ValueType } from "avm1-tree";
 import { Push } from "avm1-tree/actions";
 import { Expression } from "./as2-tree/expression";
-import { ActionEdge, BoundEdge, Cfg, CfgEdgeType } from "./cfg";
+import { ActionEdge, BoundEdge, Cfg, EdgeType, ExpressionEdge, SimpleEdge, SimpleNode } from "./cfg";
 import { PartialExpr } from "./partial-expr";
 
 export function disassemble(avm1: Uint8Array): any {
@@ -13,7 +13,7 @@ export function disassemble(avm1: Uint8Array): any {
 function pushToExpr(cfg: Cfg): boolean {
   const pushEdges: Set<BoundEdge<ActionEdge<Push>>> = new Set();
   for (const boundEdge of cfg.iterEdges()) {
-    if (boundEdge.edge.type === CfgEdgeType.Action && boundEdge.edge.action.action === ActionType.Push) {
+    if (boundEdge.edge.type === EdgeType.Action && boundEdge.edge.action.action === ActionType.Push) {
       pushEdges.add(boundEdge as BoundEdge<ActionEdge<Push>>);
     }
   }
@@ -21,25 +21,18 @@ function pushToExpr(cfg: Cfg): boolean {
     return false;
   }
   for (const pushEdge of pushEdges) {
-    cfg.removeEdge(pushEdge.from, pushEdge.to);
-    if (pushEdge.edge.action.values.length === 0) {
-      cfg.addSimpleEdge(pushEdge.from, pushEdge.to);
-    } else {
-      let cur: number = pushEdge.from;
-      const values: ReadonlyArray<Value> = pushEdge.edge.action.values;
-      for (const [i, val] of values.entries()) {
-        const partialExpr: PartialExpr = {
-          inputs: 0,
-          expr: avm1ValueToAs2Expression(val),
-          type: undefined,
-        };
-        if (i === values.length - 1) {
-          cfg.addExpressionEdge(cur, pushEdge.to, partialExpr);
-        } else {
-          cur = cfg.appendExpressionEdge(cur, partialExpr);
-        }
-      }
+    const edges: ExpressionEdge[] = [];
+    const values: ReadonlyArray<Value> = pushEdge.edge.action.values;
+    for (const value of values) {
+      const expression: PartialExpr = {
+        inputs: 0,
+        expr: avm1ValueToAs2Expression(value),
+        type: undefined,
+      };
+      edges.push({type: EdgeType.Expression, expression});
     }
+
+    cfg.replaceOutEdge(pushEdge.from as SimpleNode, edges);
   }
   return true;
 }

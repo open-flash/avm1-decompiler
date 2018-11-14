@@ -1,7 +1,7 @@
 import cp from "child_process";
 import { emitExpression } from "../as2-emitter/expression";
 import { emitAction } from "../avm1-asm-emitter/action";
-import { Cfg, CfgEdge, CfgEdgeType } from "../cfg";
+import { Cfg, Edge, EdgeType, Node } from "../cfg";
 import { PartialExpr } from "../partial-expr";
 import { UintIterator } from "../uint-iterator";
 
@@ -62,12 +62,12 @@ export function emitDot(cfg: Cfg): string {
 class CfgWriter {
   private graphId: UintIterator;
   private nodeId: UintIterator;
-  private internalToPublicNodeId: Map<number, string>;
+  private nodeToId: Map<Node, string>;
 
   constructor() {
     this.graphId = new UintIterator();
     this.nodeId = new UintIterator();
-    this.internalToPublicNodeId = new Map();
+    this.nodeToId = new Map();
   }
 
   writeCfg(chunks: string[], cfg: Cfg): void {
@@ -94,25 +94,25 @@ class CfgWriter {
     chunks.push("}");
   }
 
-  writeEdge(chunks: string[], from: string, to: string, edge: CfgEdge): void {
+  writeEdge(chunks: string[], from: string, to: string, edge: Edge): void {
     writeStringLiteral(chunks, from);
     chunks.push(" -> ");
     writeStringLiteral(chunks, to);
     switch (edge.type) {
-      case CfgEdgeType.Action:
+      case EdgeType.Action:
         writeAttributes(chunks, new Map([["label", emitAction(edge.action)]]));
         break;
-      case CfgEdgeType.Expression:
+      case EdgeType.Expression:
         const label: string = emitExpressionLabel(edge.expression);
         writeAttributes(chunks, new Map([["label", label]]));
         break;
-      case CfgEdgeType.IfFalse:
+      case EdgeType.IfFalse:
         writeAttributes(chunks, new Map([["label", "ifFalse"]]));
         break;
-      case CfgEdgeType.IfTrue:
+      case EdgeType.IfTrue:
         writeAttributes(chunks, new Map([["label", "ifTrue"]]));
         break;
-      case CfgEdgeType.Test:
+      case EdgeType.IfTest:
         writeAttributes(chunks, new Map([["label", "test"]]));
         break;
       default:
@@ -125,14 +125,15 @@ class CfgWriter {
     return `g${this.graphId.next().value}`;
   }
 
-  private getNodeId(internalId: number): string {
-    const publicNodeId: string | undefined = this.internalToPublicNodeId.get(internalId);
-    if (publicNodeId !== undefined) {
-      return publicNodeId;
+  private getNodeId(node: Node): string {
+    const nodeId: string | undefined = this.nodeToId.get(node);
+    if (nodeId !== undefined) {
+      return nodeId;
+    } else {
+      const nodeId: string = this.nextNodeId();
+      this.nodeToId.set(node, nodeId);
+      return nodeId;
     }
-    const nodeId: string = this.nextNodeId();
-    this.internalToPublicNodeId.set(internalId, nodeId);
-    return nodeId;
   }
 
   private nextNodeId(): string {
