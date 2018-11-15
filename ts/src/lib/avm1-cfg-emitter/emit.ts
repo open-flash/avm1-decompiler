@@ -1,10 +1,12 @@
 import cp from "child_process";
 import { emitExpression } from "../as2-emitter/expression";
 import { emitAction } from "../avm1-asm-emitter/action";
-import { Cfg, Edge, EdgeType, Node, NodeType } from "../cfg";
+import { Cfg } from "../cfg/cfg";
+import { Edge, EdgeType } from "../cfg/edge";
+import { Node, NodeType } from "../cfg/node";
+import { CP_STATE_ANY, CP_STATE_UNINITIALIZED } from "../constant-pool";
 import { PartialExpr } from "../partial-expr";
 import { UintIterator } from "../uint-iterator";
-import { CP_STATE_ANY, CP_STATE_UNINITIALIZED } from "../constant-pool";
 
 export async function emitSvg(cfg: Cfg): Promise<string> {
   return new Promise<string>((resolve, reject) => {
@@ -227,6 +229,9 @@ function writeAttributes(chunks: string[], attributes: ReadonlyMap<string, strin
 
 function emitExpressionLabel(expression: PartialExpr): string {
   const chunks: string[] = [];
+  if (expression.void) {
+    chunks.push("void ");
+  }
   chunks.push("(");
   for (let i: number = 0; i < expression.inputs; i++) {
     if (i > 0) {

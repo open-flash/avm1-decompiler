@@ -1,7 +1,7 @@
 import chai from "chai";
 import fs from "fs";
 import { emitDot, emitSvg } from "../lib/avm1-cfg-emitter/emit";
-import { Cfg } from "../lib/cfg";
+import { Cfg } from "../lib/cfg/cfg";
 import { disassemble } from "../lib/disassemble";
 import { getFixtures } from "./fixtures";
 

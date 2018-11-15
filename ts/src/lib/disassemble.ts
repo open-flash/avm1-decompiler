@@ -1,12 +1,15 @@
 import { ActionType, Value, ValueType } from "avm1-tree";
 import { Push } from "avm1-tree/actions";
 import { Expression } from "./as2-tree/expression";
-import { ActionEdge, BoundEdge, Cfg, EdgeType, ExpressionEdge, SimpleNode } from "./cfg";
+import { buildCfgFromAvm1 } from "./cfg/builder";
+import { Cfg } from "./cfg/cfg";
+import { ActionEdge, EdgeType, ExpressionEdge } from "./cfg/edge";
+import { BoundEdge, SimpleNode } from "./cfg/node";
 import { reduceConstantPool } from "./constant-pool";
 import { PartialExpr } from "./partial-expr";
 
 export function disassemble(avm1: Uint8Array): any {
-  const cfg: Cfg = Cfg.fromAvm1(avm1);
+  const cfg: Cfg = buildCfgFromAvm1(avm1);
   reduceConstantPool(cfg, false);
   pushToExpr(cfg);
   return cfg;
@@ -29,6 +32,7 @@ function pushToExpr(cfg: Cfg): boolean {
       const expression: PartialExpr = {
         inputs: 0,
         expr: avm1ValueToAs2Expression(value),
+        void: false,
         type: undefined,
       };
       edges.push({type: EdgeType.Expression, expression});

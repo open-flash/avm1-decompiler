@@ -1,4 +1,6 @@
-import { Cfg, Edge, Node } from "./cfg";
+import { Cfg } from "./cfg/cfg";
+import { Edge } from "./cfg/edge";
+import { Node } from "./cfg/node";
 
 export interface DataFlowAnalyzer<T> {
   initialize(node: Node, cfg: Cfg): T;

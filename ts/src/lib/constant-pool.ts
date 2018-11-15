@@ -1,6 +1,8 @@
 import { Action, ActionType, Value, ValueType } from "avm1-tree";
-import { Cfg, Edge, EdgeType, Node, NodeType } from "./cfg";
 import { analyze, DataFlowAnalyzer } from "./data-flow-analysis";
+import { Cfg } from "./cfg/cfg";
+import { Node, NodeType } from "./cfg/node";
+import { Edge, EdgeType } from "./cfg/edge";
 
 export const CP_STATE_ANY: unique symbol = Symbol("CONSTANT_POOL_STATE_ANY");
 export const CP_STATE_UNINITIALIZED: unique symbol = Symbol("CONSTANT_POOL_STATE_UNINITIALIZED");
