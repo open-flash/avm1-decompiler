@@ -1,11 +1,13 @@
 import { ActionType, Value, ValueType } from "avm1-tree";
 import { Push } from "avm1-tree/actions";
 import { Expression } from "./as2-tree/expression";
-import { ActionEdge, BoundEdge, Cfg, EdgeType, ExpressionEdge, SimpleEdge, SimpleNode } from "./cfg";
+import { ActionEdge, BoundEdge, Cfg, EdgeType, ExpressionEdge, SimpleNode } from "./cfg";
+import { reduceConstantPool } from "./constant-pool";
 import { PartialExpr } from "./partial-expr";
 
 export function disassemble(avm1: Uint8Array): any {
   const cfg: Cfg = Cfg.fromAvm1(avm1);
+  reduceConstantPool(cfg, false);
   pushToExpr(cfg);
   return cfg;
 }

@@ -1,9 +1,10 @@
 import cp from "child_process";
 import { emitExpression } from "../as2-emitter/expression";
 import { emitAction } from "../avm1-asm-emitter/action";
-import { Cfg, Edge, EdgeType, Node } from "../cfg";
+import { Cfg, Edge, EdgeType, Node, NodeType } from "../cfg";
 import { PartialExpr } from "../partial-expr";
 import { UintIterator } from "../uint-iterator";
+import { CP_STATE_ANY, CP_STATE_UNINITIALIZED } from "../constant-pool";
 
 export async function emitSvg(cfg: Cfg): Promise<string> {
   return new Promise<string>((resolve, reject) => {
@@ -60,6 +61,7 @@ export function emitDot(cfg: Cfg): string {
 }
 
 class CfgWriter {
+  public readonly emitConstants: boolean;
   private graphId: UintIterator;
   private nodeId: UintIterator;
   private nodeToId: Map<Node, string>;
@@ -68,30 +70,75 @@ class CfgWriter {
     this.graphId = new UintIterator();
     this.nodeId = new UintIterator();
     this.nodeToId = new Map();
+    this.emitConstants = true;
   }
 
   writeCfg(chunks: string[], cfg: Cfg): void {
     chunks.push(`subgraph ${this.nextGraphId()} {`);
-    const source: string = this.getNodeId(cfg.getSource());
-    writeStringLiteral(chunks, source);
-    chunks.push(";\n");
-    const knownNodes: Set<string> = new Set([source]);
+    const source: Node = cfg.getSource();
+    this.writeNode(chunks, source);
+    const knownNodes: Set<Node> = new Set([source]);
     for (const {from, to, edge} of cfg.iterEdges()) {
+      if (!knownNodes.has(from)) {
+        this.writeNode(chunks, from);
+        knownNodes.add(from);
+      }
+      if (!knownNodes.has(to)) {
+        this.writeNode(chunks, to);
+        knownNodes.add(to);
+      }
       const fromId: string = this.getNodeId(from);
       const toId: string = this.getNodeId(to);
-      if (!knownNodes.has(fromId)) {
-        writeStringLiteral(chunks, fromId);
-        chunks.push(";\n");
-        knownNodes.add(fromId);
-      }
-      if (!knownNodes.has(toId)) {
-        writeStringLiteral(chunks, toId);
-        chunks.push(";\n");
-        knownNodes.add(toId);
-      }
       this.writeEdge(chunks, fromId, toId, edge);
     }
     chunks.push("}");
+  }
+
+  writeNode(chunks: string[], node: Node): void {
+    const nodeId: string = this.getNodeId(node);
+    writeStringLiteral(chunks, nodeId);
+    const labelChunks: string[] = [];
+    switch (node.type) {
+      case NodeType.End:
+        labelChunks.push("end");
+        break;
+      case NodeType.If:
+        labelChunks.push("if");
+        break;
+      default:
+        break;
+    }
+    labelChunks.push(`#${nodeId}`);
+    if (this.emitConstants && node.constants !== undefined) {
+      labelChunks.push("\n");
+      labelChunks.push("constants = ");
+      if (node.constants === CP_STATE_ANY) {
+        labelChunks.push("<any>");
+      } else if (node.constants === CP_STATE_UNINITIALIZED) {
+        labelChunks.push("<uninitialized>");
+      } else {
+        if (node.constants.size === 0) {
+          labelChunks.push("{}");
+        } else {
+          labelChunks.push("{\n");
+          for (const pool of node.constants) {
+            labelChunks.push("  [\n");
+            for (const constant of pool) {
+              labelChunks.push("    ");
+              labelChunks.push(JSON.stringify(constant));
+              labelChunks.push(",\n");
+            }
+            labelChunks.push("  ],\n");
+          }
+          labelChunks.push("}");
+        }
+      }
+    }
+    writeAttributes(chunks, new Map([
+      ["shape", "box"],
+      ["label", labelChunks.join("")],
+    ]));
+    chunks.push(";\n");
   }
 
   writeEdge(chunks: string[], from: string, to: string, edge: Edge): void {
@@ -142,12 +189,24 @@ class CfgWriter {
 }
 
 function writeStringLiteral(chunks: string[], value: string, leftAlign: boolean = false): void {
-  if (leftAlign) {
-    // TODO: More reliable replacement
-    chunks.push(JSON.stringify(value).replace(/\\n/g, "\\l").replace(/"$/, "\\l\""));
-  } else {
-    chunks.push(JSON.stringify(value));
+  chunks.push("\"");
+  for (const cp of [...value]) {
+    switch (cp) {
+      case "\\":
+        chunks.push("\\\\");
+        break;
+      case "\"":
+        chunks.push("\\\"");
+        break;
+      case "\n":
+        chunks.push(leftAlign ? "\\l" : "\\n");
+        break;
+      default:
+        chunks.push(cp);
+        break;
+    }
   }
+  chunks.push(leftAlign ? "\\l\"" : "\"");
 }
 
 function writeAttributes(chunks: string[], attributes: ReadonlyMap<string, string>): void {
@@ -156,7 +215,7 @@ function writeAttributes(chunks: string[], attributes: ReadonlyMap<string, strin
   for (const [key, value] of attributes) {
     writeStringLiteral(chunks, key);
     chunks.push("=");
-    writeStringLiteral(chunks, value, true);
+    writeStringLiteral(chunks, value, key === "label");
     if (first) {
       first = false;
     } else {
