@@ -7,9 +7,12 @@ import { Constant } from "./partial/constant";
 import { Input } from "./partial/input";
 import { Register } from "./partial/register";
 import { StringLiteral } from "./string-literal";
+import { CallExpression } from "./call-expression";
+import { UnaryExpression } from "./unary-expression";
 
 export type Expression =
   AssignmentExpression
+  | CallExpression
   | Constant
   | BinaryExpression
   | BooleanLiteral
@@ -17,4 +20,5 @@ export type Expression =
   | Input
   | MemberExpression
   | Register
-  | StringLiteral;
+  | StringLiteral
+  | UnaryExpression;

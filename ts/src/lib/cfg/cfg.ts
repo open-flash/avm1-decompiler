@@ -11,14 +11,24 @@ export class Cfg {
 
   constructor(source: SimpleNode) {
     const inEdges: Map<Node, Map<Node, Edge>> = new Map();
-    for (const {from, to, edge} of getOutEdges(source)) {
-      let curInEdges: Map<Node, Edge> | undefined = inEdges.get(to);
-      if (curInEdges === undefined) {
-        curInEdges = new Map();
-        inEdges.set(to, curInEdges);
+    const closedSet: Set<Node> = new Set();
+    const openSet: Node[] = [source];
+    while (openSet.length > 0) {
+      const from: Node = openSet.pop()!;
+      closedSet.add(from);
+      for (const {to, edge} of this.getOutEdges(from)) {
+        if (!closedSet.has(to)) {
+          openSet.push(to);
+        }
+        let curInEdges: Map<Node, Edge> | undefined = inEdges.get(to);
+        if (curInEdges === undefined) {
+          curInEdges = new Map();
+          inEdges.set(to, curInEdges);
+        }
+        curInEdges.set(from, edge);
       }
-      curInEdges.set(from, edge);
     }
+
     this.source = source;
     this.inEdges = inEdges;
     this.inConstants = CP_STATE_ANY;
@@ -47,13 +57,13 @@ export class Cfg {
     const openSet: Node[] = [this.source];
     while (openSet.length > 0) {
       const from: Node = openSet.pop()!;
+      closedSet.add(from);
       for (const outEdge of this.getOutEdges(from)) {
         if (!closedSet.has(outEdge.to)) {
           openSet.push(outEdge.to);
         }
         yield outEdge;
       }
-      closedSet.add(from);
     }
   }
 
@@ -62,13 +72,13 @@ export class Cfg {
     const openSet: Node[] = [this.source];
     while (openSet.length > 0) {
       const from: Node = openSet.pop()!;
+      closedSet.add(from);
       yield from;
       for (const {to} of this.getOutEdges(from)) {
         if (!closedSet.has(to)) {
           openSet.push(to);
         }
       }
-      closedSet.add(from);
     }
   }
 
