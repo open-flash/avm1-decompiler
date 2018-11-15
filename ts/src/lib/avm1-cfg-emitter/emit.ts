@@ -77,18 +77,10 @@ class CfgWriter {
 
   writeCfg(chunks: string[], cfg: Cfg): void {
     chunks.push(`subgraph ${this.nextGraphId()} {`);
-    const source: Node = cfg.getSource();
-    this.writeNode(chunks, source);
-    const knownNodes: Set<Node> = new Set([source]);
+    for (const node of cfg.iterNodes()) {
+      this.writeNode(chunks, node);
+    }
     for (const {from, to, edge} of cfg.iterEdges()) {
-      if (!knownNodes.has(from)) {
-        this.writeNode(chunks, from);
-        knownNodes.add(from);
-      }
-      if (!knownNodes.has(to)) {
-        this.writeNode(chunks, to);
-        knownNodes.add(to);
-      }
       const fromId: string = this.getNodeId(from);
       const toId: string = this.getNodeId(to);
       this.writeEdge(chunks, fromId, toId, edge);
