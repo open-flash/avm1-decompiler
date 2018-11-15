@@ -11,14 +11,16 @@ export class Cfg {
 
   constructor(source: SimpleNode) {
     const inEdges: Map<Node, Map<Node, Edge>> = new Map();
-    const closedSet: Set<Node> = new Set();
-    const openSet: Node[] = [source];
-    while (openSet.length > 0) {
-      const from: Node = openSet.pop()!;
-      closedSet.add(from);
+    // undefined: white, false: gray, true: black
+    const visitedState: Map<Node, boolean> = new Map();
+    const stack: Node[] = [source];
+    while (stack.length > 0) {
+      const from: Node = stack.pop()!;
+      visitedState.set(from, true);
       for (const {to, edge} of this.getOutEdges(from)) {
-        if (!closedSet.has(to)) {
-          openSet.push(to);
+        if (!visitedState.has(to)) {
+          stack.push(to);
+          visitedState.set(to, false);
         }
         let curInEdges: Map<Node, Edge> | undefined = inEdges.get(to);
         if (curInEdges === undefined) {
@@ -58,14 +60,16 @@ export class Cfg {
   }
 
   * iterEdges(): IterableIterator<BoundEdge> {
-    const closedSet: Set<Node> = new Set();
-    const openSet: Node[] = [this.source];
-    while (openSet.length > 0) {
-      const from: Node = openSet.pop()!;
-      closedSet.add(from);
+    // undefined: white, false: gray, true: black
+    const visitedState: Map<Node, boolean> = new Map();
+    const stack: Node[] = [this.source];
+    while (stack.length > 0) {
+      const from: Node = stack.pop()!;
+      visitedState.set(from, true);
       for (const outEdge of this.getOutEdges(from)) {
-        if (!closedSet.has(outEdge.to)) {
-          openSet.push(outEdge.to);
+        if (!visitedState.has(outEdge.to)) {
+          stack.push(outEdge.to);
+          visitedState.set(outEdge.to, false);
         }
         yield outEdge;
       }
@@ -73,15 +77,17 @@ export class Cfg {
   }
 
   * iterNodes(): IterableIterator<Node> {
-    const closedSet: Set<Node> = new Set();
-    const openSet: Node[] = [this.source];
-    while (openSet.length > 0) {
-      const from: Node = openSet.pop()!;
-      closedSet.add(from);
+    // undefined: white, false: gray, true: black
+    const visitedState: Map<Node, boolean> = new Map();
+    const stack: Node[] = [this.source];
+    while (stack.length > 0) {
+      const from: Node = stack.pop()!;
+      visitedState.set(from, true);
       yield from;
       for (const {to} of this.getOutEdges(from)) {
-        if (!closedSet.has(to)) {
-          openSet.push(to);
+        if (!visitedState.has(to)) {
+          stack.push(to);
+          visitedState.set(to, false);
         }
       }
     }

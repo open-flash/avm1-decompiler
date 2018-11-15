@@ -1,6 +1,6 @@
 import { Cfg } from "./cfg/cfg";
 import { Edge, EdgeType } from "./cfg/edge";
-import { NodeType, SimpleNode } from "./cfg/node";
+import { Node, NodeType, SimpleNode } from "./cfg/node";
 import { mergePartialExpressions, PartialExpr } from "./partial-expr";
 
 export function reduceChains(cfg: Cfg): boolean {
@@ -22,22 +22,28 @@ export function reduceChains(cfg: Cfg): boolean {
 }
 
 function* iterChains(cfg: Cfg): IterableIterator<SimpleNode[]> {
-  let curChain: SimpleNode[] = [];
-  for (const node of cfg.iterNodes()) {
-    let pushed: boolean = false;
-    if (node.type === NodeType.Simple) {
-      if (curChain.length === 0) {
-        curChain.push(node);
-        pushed = true;
-      } else if (node === curChain[curChain.length - 1].out.to && cfg.getInDegree(node) === 1) {
-        // We're using the fact that the traversal is a DFS
-        curChain.push(node);
-        pushed = true;
+  const visitedState: Map<Node, boolean> = new Map();
+  const stack: Node[] = [cfg.getSource()];
+  while (stack.length > 0) {
+    let cur: Node = stack.pop()!;
+    visitedState.set(cur, true);
+    if (cur.type === NodeType.Simple) {
+      const chain: SimpleNode[] = [];
+      while (cur.type === NodeType.Simple) {
+        chain.push(cur);
+        visitedState.set(cur, true);
+        if (cfg.getInDegree(cur.out.to) !== 1) {
+          break;
+        }
+        cur = cur.out.to;
       }
+      yield chain;
     }
-    if (!pushed && curChain.length > 0) {
-      yield curChain;
-      curChain = [];
+    for (const {to} of cfg.getOutEdges(cur)) {
+      if (!visitedState.has(to)) {
+        stack.push(to);
+        visitedState.set(to, false);
+      }
     }
   }
 }
