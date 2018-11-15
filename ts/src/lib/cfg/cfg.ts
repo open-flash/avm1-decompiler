@@ -52,6 +52,11 @@ export class Cfg {
     }
   }
 
+  getInDegree(to: Node): number {
+    const inEdges: Map<Node, Edge> | undefined = this.inEdges.get(to);
+    return inEdges === undefined ? 0 : inEdges.size;
+  }
+
   * iterEdges(): IterableIterator<BoundEdge> {
     const closedSet: Set<Node> = new Set();
     const openSet: Node[] = [this.source];
@@ -85,25 +90,55 @@ export class Cfg {
   public replaceOutEdge(from: SimpleNode, edges: ReadonlyArray<Edge>): void {
     const to: Node = from.out.to;
     this.unsetInEdge(from, to);
+    this.addEdges(from, to, edges);
+  }
+
+  public replaceChain(chain: ReadonlyArray<SimpleNode>, edges: ReadonlyArray<Edge>): void {
+    if (chain.length === 0) {
+      throw new Error("EmptyChain");
+    } else if (chain.length === 1) {
+      this.replaceOutEdge(chain[0], edges);
+    }
+    let prev: Node = chain[0];
+    for (let i: number = 1; i < chain.length; i++) {
+      const cur: Node = chain[i];
+      if (this.getInDegree(cur) !== 1 || prev.out.to !== cur) {
+        throw new Error("InvalidChain");
+      }
+      prev = cur;
+    }
+    this.uncheckedReplaceChain(chain, edges);
+  }
+
+  private uncheckedReplaceChain(chain: ReadonlyArray<SimpleNode>, edges: ReadonlyArray<Edge>): void {
+    for (const link of chain) {
+      this.unsetInEdge(link, link.out.to);
+    }
+    const chainSrc: SimpleNode = chain[0];
+    const chainDest: Node = chain[chain.length - 1].out.to;
+    this.addEdges(chainSrc, chainDest, edges);
+  }
+
+  private addEdges(src: SimpleNode, dest: Node, edges: ReadonlyArray<Edge>): void {
     if (edges.length === 0) {
       const edge: SimpleEdge = {type: EdgeType.Simple};
-      from.out = {to, edge};
-      this.setInEdge(from, to, edge);
+      src.out = {to: dest, edge};
+      this.setInEdge(src, dest, edge);
       return;
     }
-    let curTo: Node = to;
+    let curDest: Node = dest;
     for (let i: number = edges.length - 1; i >= 0; i--) {
       const edge: Edge = edges[i];
       if (i === 0) {
-        from.out = {to: curTo, edge};
-        this.setInEdge(from, curTo, edge);
+        src.out = {to: curDest, edge};
+        this.setInEdge(src, curDest, edge);
       } else {
-        const from: SimpleNode = {
+        const src: SimpleNode = {
           type: NodeType.Simple,
-          out: {to: curTo, edge},
+          out: {to: curDest, edge},
         };
-        this.setInEdge(from, curTo, edge);
-        curTo = from;
+        this.setInEdge(src, curDest, edge);
+        curDest = src;
       }
     }
   }
