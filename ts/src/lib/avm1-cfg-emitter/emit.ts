@@ -8,6 +8,8 @@ import { CP_STATE_ANY, CP_STATE_UNINITIALIZED } from "../constant-pool";
 import { PartialExpr } from "../partial-expr";
 import { UintIterator } from "../uint-iterator";
 
+// tslint:disable:no-use-before-declare
+
 export async function emitSvg(cfg: Cfg): Promise<string> {
   return new Promise<string>((resolve, reject) => {
     const dot: string = emitDot(cfg);

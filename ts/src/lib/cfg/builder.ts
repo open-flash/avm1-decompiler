@@ -4,6 +4,8 @@ import { Cfg } from "./cfg";
 import { ActionEdge, Edge, EdgeType, IfFalseEdge, IfTestEdge, IfTrueEdge, SimpleEdge } from "./edge";
 import { EndNode, IfNode, Node, NodeBase, NodeType, SimpleNode } from "./node";
 
+// tslint:disable:no-use-before-declare
+
 export function buildCfgFromAvm1(avm1: Uint8Array): Cfg {
   const cfg: CfgBuilder = new CfgBuilder();
   const source: SimpleNode = cfg.getSource();

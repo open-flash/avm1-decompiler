@@ -46,11 +46,10 @@ export class Cfg {
 
   * getInEdges(to: Node): IterableIterator<BoundEdge> {
     const inEdges: Map<Node, Edge> | undefined = this.inEdges.get(to);
-    if (inEdges === undefined) {
-      return;
-    }
-    for (const [from, edge] of inEdges) {
-      yield {from, to, edge};
+    if (inEdges !== undefined) {
+      for (const [from, edge] of inEdges) {
+        yield {from, to, edge};
+      }
     }
   }
 
@@ -108,7 +107,7 @@ export class Cfg {
     let prev: Node = chain[0];
     for (let i: number = 1; i < chain.length; i++) {
       const cur: Node = chain[i];
-      if (this.getInDegree(cur) !== 1 || prev.out.to !== cur) {
+      if (cur === this.source || this.getInDegree(cur) !== 1 || prev.out.to !== cur) {
         throw new Error("InvalidChain");
       }
       prev = cur;

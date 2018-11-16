@@ -35,6 +35,7 @@ function* iterChains(cfg: Cfg): IterableIterator<SimpleNode[]> {
         if (cfg.getInDegree(cur.out.to) !== 1) {
           break;
         }
+        // TODO: avoid source or already visited nodes (don't break on loop)
         cur = cur.out.to;
       }
       yield chain;

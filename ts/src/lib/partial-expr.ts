@@ -1,14 +1,14 @@
-import { Expression } from "./as2-tree/expression";
-import { Input, makeInput } from "./as2-tree/partial/input";
-import { BinaryExpression } from "./as2-tree/binary-expression";
-import { UnaryExpression } from "./as2-tree/unary-expression";
 import { AssignmentExpression } from "./as2-tree/assignment-expression";
+import { BinaryExpression } from "./as2-tree/binary-expression";
 import { BooleanLiteral } from "./as2-tree/boolean-literal";
-import { StringLiteral } from "./as2-tree/string-literal";
-import { Identifier } from "./as2-tree/identifier";
-import { Constant } from "./as2-tree/partial/constant";
 import { CallExpression } from "./as2-tree/call-expression";
+import { Expression } from "./as2-tree/expression";
+import { Identifier } from "./as2-tree/identifier";
 import { MemberExpression } from "./as2-tree/member-expression";
+import { Constant } from "./as2-tree/partial/constant";
+import { Input, makeInput } from "./as2-tree/partial/input";
+import { StringLiteral } from "./as2-tree/string-literal";
+import { UnaryExpression } from "./as2-tree/unary-expression";
 
 export interface PartialExpr {
   inputs: number;

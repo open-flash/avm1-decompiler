@@ -48,9 +48,9 @@ const lib: buildTools.LibTarget = {
   },
   typedoc: {
     dir: "typedoc",
-    name: "SWF Parser",
+    name: "AVM1 decompiler",
     deploy: {
-      repository: "git@github.com:open-flash/swf-tree.git",
+      repository: "git@github.com:open-flash/avm1-decompiler.git",
       branch: "gh-pages",
     },
   },

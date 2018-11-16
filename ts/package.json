@@ -1,7 +1,7 @@
 {
-  "name": "swf-parser",
-  "version": "0.0.7",
-  "description": "SWF parser loosely based on Shumway",
+  "name": "avm1-decompiler",
+  "version": "0.0.1",
+  "description": "AVM1 decompiler",
   "main": "dist/lib/index.js",
   "types": "dist/lib/index.d.ts",
   "keywords": [
