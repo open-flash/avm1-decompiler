@@ -2,6 +2,12 @@ import { CP_STATE_ANY, CpState } from "../constant-pool";
 import { Edge, EdgeType, SimpleEdge } from "./edge";
 import { BoundEdge, Node, NodeType, SimpleNode } from "./node";
 
+export enum Traversal {
+  PreorderDfs,
+  PostorderDfs,
+  ReversePostorderDfs,
+}
+
 // Control flow graph
 export class Cfg {
   public readonly inConstants: CpState;
@@ -75,19 +81,90 @@ export class Cfg {
     }
   }
 
-  * iterNodes(): IterableIterator<Node> {
-    // undefined: white, false: gray, true: black
-    const visitedState: Map<Node, boolean> = new Map();
+  * iterNodes(traversal: Traversal = Traversal.ReversePostorderDfs): IterableIterator<Node> {
+    switch (traversal) {
+      case Traversal.PreorderDfs:
+        yield* this.iterNodesPreorder();
+        break;
+      case Traversal.PostorderDfs: {
+        yield* this.iterNodesPostorder();
+        break;
+      }
+      case Traversal.ReversePostorderDfs: {
+        yield* [...this.iterNodesPostorder()].reverse();
+        break;
+      }
+      default:
+        throw new Error(`Unknown Traversal value: ${traversal}`);
+    }
+  }
+
+  public* iterNodesPreorder(): IterableIterator<Node> {
     const stack: Node[] = [this.source];
+    const known: Set<Node> = new Set(stack);
     while (stack.length > 0) {
       const from: Node = stack.pop()!;
-      visitedState.set(from, true);
       yield from;
-      for (const {to} of this.getOutEdges(from)) {
-        if (!visitedState.has(to)) {
+      for (const {to} of [...this.getOutEdges(from)].reverse()) {
+        if (!known.has(to)) {
           stack.push(to);
-          visitedState.set(to, false);
+          known.add(to);
         }
+      }
+    }
+  }
+
+  public* iterNodesPostorder(): IterableIterator<Node> {
+    const stack: Node[] = [this.source];
+    const discoveredOutEdges: Map<Node, number> = new Map([[this.source, 0]]);
+    while (stack.length > 0) {
+      const from: Node = stack[stack.length - 1];
+      let discovered: number = discoveredOutEdges.get(from)!;
+      switch (from.type) {
+        case NodeType.End: {
+          yield stack.pop()!;
+          break;
+        }
+        case NodeType.Simple: {
+          if (discovered === 0) {
+            const next: Node = from.out.to;
+            discovered += 1;
+            discoveredOutEdges.set(from, discovered);
+            if (!discoveredOutEdges.has(next)) {
+              discoveredOutEdges.set(next, 0);
+              stack.push(next);
+              continue;
+            }
+          }
+          yield stack.pop()!;
+          break;
+        }
+        case NodeType.If: {
+          if (discovered === 0) {
+            const next: Node = from.outTrue.to;
+            discovered += 1;
+            discoveredOutEdges.set(from, discovered);
+            if (!discoveredOutEdges.has(next)) {
+              discoveredOutEdges.set(next, 0);
+              stack.push(next);
+              continue;
+            }
+          }
+          if (discovered === 1) {
+            const next: Node = from.outFalse.to;
+            discovered += 1;
+            discoveredOutEdges.set(from, discovered);
+            if (!discoveredOutEdges.has(next)) {
+              discoveredOutEdges.set(next, 0);
+              stack.push(next);
+              continue;
+            }
+          }
+          yield stack.pop()!;
+          break;
+        }
+        default:
+          throw new Error(`Unexpected NodeType value: ${(from as any).type}`);
       }
     }
   }
@@ -168,8 +245,8 @@ export class Cfg {
 function* getOutEdges(from: Node): IterableIterator<BoundEdge> {
   switch (from.type) {
     case NodeType.If:
-      yield {from, ...from.outTrue};
       yield {from, ...from.outFalse};
+      yield {from, ...from.outTrue};
       break;
     case NodeType.Simple:
       yield {from, ...from.out};

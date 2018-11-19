@@ -8,9 +8,9 @@ import { EndNode, IfNode, Node, NodeBase, NodeType, SimpleNode } from "./node";
 
 export function buildCfgFromAvm1(avm1: Uint8Array): Cfg {
   const cfg: CfgBuilder = new CfgBuilder();
-  const source: SimpleNode = cfg.getSource();
+  const source: BuilderNode = cfg.getSource();
   const avm1Parser: Avm1Parser = new Avm1Parser(avm1);
-  const offsetToNode: Map<number, IncompleteSimpleNode | SimpleNode> = new Map([[0, source]]);
+  const offsetToNode: Map<number, BuilderSimpleNode> = new Map([[0, source]]);
   const incompleteNodes: Set<IncompleteSimpleNode> = new Set([source as any]);
   const openSet: number[] = [0];
   while (openSet.length > 0) {
@@ -83,12 +83,12 @@ export function buildCfgFromAvm1(avm1: Uint8Array): Cfg {
     cfg.appendEnd(incompleteNode);
   }
 
-  return new Cfg(cfg.getSource());
+  return cfg.build();
 }
 
-// Control flow graph
-class CfgBuilder {
-  private readonly source: SimpleNode;
+// Control flow graph builder
+export class CfgBuilder {
+  private readonly source: BuilderSimpleNode;
   private readonly inEdges: Map<Node, Map<Node, Edge>>;
 
   constructor() {
@@ -96,7 +96,11 @@ class CfgBuilder {
     this.source = createSimpleNode() as any as SimpleNode;
   }
 
-  addSimpleEdge(from: IncompleteSimpleNode, to: Node): void {
+  build(): Cfg {
+    return new Cfg(this.source as SimpleNode);
+  }
+
+  addSimpleEdge(from: IncompleteSimpleNode, to: BuilderNode): void {
     const edge: SimpleEdge = {type: EdgeType.Simple};
     (from as any).out = {to, edge};
   }
@@ -131,7 +135,7 @@ class CfgBuilder {
     return [ifFalseNode, ifTrueNode];
   }
 
-  getSource(): SimpleNode {
+  getSource(): BuilderSimpleNode {
     return this.source;
   }
 
@@ -142,11 +146,19 @@ class CfgBuilder {
   }
 }
 
-function createSimpleNode(): IncompleteSimpleNode {
+export function createSimpleNode(): IncompleteSimpleNode {
   return {type: NodeType.Simple, out: undefined};
 }
 
-interface IncompleteSimpleNode extends NodeBase {
+export interface IncompleteSimpleNode extends NodeBase {
   type: NodeType.Simple;
-  out: undefined;
+  out?: BuilderHalfBoundEdge;
+}
+
+export type BuilderSimpleNode = IncompleteSimpleNode | SimpleNode;
+export type BuilderNode = IncompleteSimpleNode | Node;
+
+export interface BuilderHalfBoundEdge<E extends Edge = Edge> {
+  readonly to: BuilderNode;
+  readonly edge: E;
 }
