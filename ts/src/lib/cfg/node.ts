@@ -1,4 +1,4 @@
-import { CpState } from "../constant-pool";
+import { CpState } from "../disassembler/constant-pool";
 import { Edge } from "./edge";
 
 /**

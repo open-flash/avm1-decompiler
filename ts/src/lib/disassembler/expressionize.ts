@@ -1,14 +1,14 @@
 import { Action, ActionType, Value, ValueType } from "avm1-tree";
 import { Push } from "avm1-tree/actions";
-import { makeCallExpression } from "./as2-tree/call-expression";
-import { Expression } from "./as2-tree/expression";
-import { makeIdentifier } from "./as2-tree/identifier";
-import { makeInput } from "./as2-tree/partial/input";
-import { makeUnaryExpression } from "./as2-tree/unary-expression";
-import { UnaryOperator } from "./as2-tree/unary-operator";
-import { Cfg } from "./cfg/cfg";
-import { EdgeType, ExpressionEdge } from "./cfg/edge";
-import { NodeType, SimpleNode } from "./cfg/node";
+import { makeCallExpression } from "../as2-tree/call-expression";
+import { Expression } from "../as2-tree/expression";
+import { makeIdentifier } from "../as2-tree/identifier";
+import { makeInput } from "../as2-tree/partial/input";
+import { makeUnaryExpression } from "../as2-tree/unary-expression";
+import { UnaryOperator } from "../as2-tree/unary-operator";
+import { Cfg } from "../cfg/cfg";
+import { EdgeType, ExpressionEdge } from "../cfg/edge";
+import { NodeType, SimpleNode } from "../cfg/node";
 
 export function expressionize(cfg: Cfg): boolean {
   const replacements: Map<SimpleNode, ReadonlyArray<ExpressionEdge>> = new Map();

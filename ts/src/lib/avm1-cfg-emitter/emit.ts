@@ -4,7 +4,7 @@ import { emitAction } from "../avm1-asm-emitter/action";
 import { Cfg } from "../cfg/cfg";
 import { Edge, EdgeType } from "../cfg/edge";
 import { Node, NodeType } from "../cfg/node";
-import { CP_STATE_ANY, CP_STATE_UNINITIALIZED } from "../constant-pool";
+import { CP_STATE_ANY, CP_STATE_UNINITIALIZED } from "../disassembler/constant-pool";
 import { PartialExpr } from "../partial-expr";
 import { UintIterator } from "../uint-iterator";
 
@@ -159,6 +159,7 @@ class CfgWriter {
         writeAttributes(chunks, new Map([["label", "test"]]));
         break;
       default:
+        writeAttributes(chunks, new Map([["label", `UNKNOWN EDGE TYPE: ${edge.type} (${EdgeType[edge.type]})`]]));
         break;
     }
     chunks.push(";\n");

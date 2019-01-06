@@ -1,25 +1,28 @@
 import { Action } from "avm1-tree";
 import { PartialExpr } from "../partial-expr";
+import { Cfg } from "./cfg";
 
 export type Edge =
   ActionEdge
+  | ConditionalEdge
   | ExpressionEdge
   | IfFalseEdge
+  | IfTestEdge
   | IfTrueEdge
   | MarkerEdge
   | SimpleEdge
-  | SubCfgEdge
-  | IfTestEdge;
+  | SubCfgEdge;
 
 export enum EdgeType {
   Action,
-  IfTrue,
-  IfFalse,
+  Conditional,
   Expression,
+  IfFalse,
+  IfTest,
+  IfTrue,
   Marker,
   Simple,
   Sub,
-  IfTest,
 }
 
 export interface ActionEdge<A extends Action = Action> {
@@ -58,6 +61,12 @@ export interface SimpleEdge {
 
 export interface SubCfgEdge {
   readonly type: EdgeType.Sub;
+}
+
+export interface ConditionalEdge {
+  readonly type: EdgeType.Conditional;
+  readonly ifTrue: Cfg;
+  readonly ifFalse: Cfg;
 }
 
 export type Marker = VariableDefinitionMarker;

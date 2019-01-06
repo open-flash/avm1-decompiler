@@ -1,7 +1,7 @@
-import { Cfg } from "./cfg/cfg";
-import { Edge, EdgeType } from "./cfg/edge";
-import { Node, NodeType, SimpleNode } from "./cfg/node";
-import { mergePartialExpressions, PartialExpr } from "./partial-expr";
+import { Cfg } from "../cfg/cfg";
+import { Edge, EdgeType } from "../cfg/edge";
+import { Node, NodeType, SimpleNode } from "../cfg/node";
+import { mergePartialExpressions, PartialExpr } from "../partial-expr";
 
 export function reduceChains(cfg: Cfg): boolean {
   const replacements: Map<ReadonlyArray<SimpleNode>, ReadonlyArray<Edge>> = new Map();

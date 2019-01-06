@@ -86,6 +86,16 @@ export function buildCfgFromAvm1(avm1: Uint8Array): Cfg {
   return cfg.build();
 }
 
+export function buildLinear(edges: ReadonlyArray<Edge>): Cfg {
+  const cfg: CfgBuilder = new CfgBuilder();
+  let cur: IncompleteSimpleNode = cfg.getSource();
+  for (const edge of edges) {
+    cur = cfg.appendEdge(cur, edge);
+  }
+  cfg.appendEnd(cur);
+  return cfg.build();
+}
+
 // Control flow graph builder
 export class CfgBuilder {
   private readonly source: BuilderSimpleNode;

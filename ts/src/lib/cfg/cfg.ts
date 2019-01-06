@@ -1,4 +1,4 @@
-import { CP_STATE_ANY, CpState } from "../constant-pool";
+import { CP_STATE_ANY, CpState } from "../disassembler/constant-pool";
 import { Edge, EdgeType, SimpleEdge } from "./edge";
 import { BoundEdge, Node, NodeType, SimpleNode } from "./node";
 
@@ -175,6 +175,18 @@ export class Cfg {
     this.addEdges(from, to, edges);
   }
 
+  /**
+   * Replaces local nodes between `from` and `to`.
+   *
+   * @param src Inclusive lower bound
+   * @param dest Exclusive upper bound
+   * @param edges Edges to add
+   */
+  public replaceInterval(src: SimpleNode, dest: Node, edges: ReadonlyArray<Edge>): void {
+    this.emptyInterval(src, dest);
+    this.addEdges(src, dest, edges);
+  }
+
   public replaceChain(chain: ReadonlyArray<SimpleNode>, edges: ReadonlyArray<Edge>): void {
     if (chain.length === 0) {
       throw new Error("EmptyChain");
@@ -238,6 +250,32 @@ export class Cfg {
     const inEdges: Map<Node, Edge> | undefined = this.inEdges.get(to);
     if (inEdges !== undefined) {
       inEdges.delete(from);
+    }
+  }
+
+  private emptyInterval(src: SimpleNode, dest: Node): void {
+    const inEdges: Set<BoundEdge> = new Set();
+    const outEdges: Set<BoundEdge> = new Set();
+    const stack: Node[] = [src];
+    const known: Set<Node> = new Set([dest, dest]);
+    while (stack.length > 0) {
+      const node: Node = stack.pop()!;
+      for (const outEdge of this.getOutEdges(node)) {
+        outEdges.add(outEdge);
+        if (!known.has(outEdge.to)) {
+          stack.push(outEdge.to);
+          known.add(outEdge.to);
+        }
+      }
+      if (node !== src) {
+        for (const inEdge of this.getInEdges(node)) {
+          inEdges.add(inEdge);
+        }
+      }
+    }
+    // TODO: Check that `inEdges` is a subset of `outEdges`.
+    for (const {from, to} of outEdges) {
+      this.unsetInEdge(from, to);
     }
   }
 }

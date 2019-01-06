@@ -1,8 +1,8 @@
 import { Action, ActionType, Value, ValueType } from "avm1-tree";
-import { Cfg } from "./cfg/cfg";
-import { Edge, EdgeType } from "./cfg/edge";
-import { Node, NodeType } from "./cfg/node";
-import { analyze, DataFlowAnalyzer } from "./data-flow-analysis";
+import { Cfg } from "../cfg/cfg";
+import { Edge, EdgeType } from "../cfg/edge";
+import { Node, NodeType } from "../cfg/node";
+import { analyze, DataFlowAnalyzer } from "../data-flow-analysis";
 
 // tslint:disable:no-use-before-declare
 
