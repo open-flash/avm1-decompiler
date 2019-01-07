@@ -2,6 +2,7 @@ import { buildLinear } from "../cfg/builder";
 import { Cfg } from "../cfg/cfg";
 import { ConditionalEdge, Edge, EdgeType } from "../cfg/edge";
 import { IfNode, Node, NodeType, SimpleNode } from "../cfg/node";
+import { makeInput } from "../as2-tree/partial/input";
 
 export function reduceConditionals(cfg: Cfg): boolean {
   const conditionals: ReadonlyArray<Conditional> = [...findConditionals(cfg)];
@@ -109,10 +110,23 @@ function checkConditional(cfg: Cfg, nodes: ReadonlyArray<Node>, startIndex: numb
 }
 
 function toConditionalEdge(ifFalseChain: ReadonlyArray<Edge>, ifTrueChain: ReadonlyArray<Edge>): ConditionalEdge {
-  const ifFalse: Cfg = buildLinear(ifFalseChain);
-  const ifTrue: Cfg = buildLinear(ifTrueChain);
+  if (ifFalseChain.length < 0 || ifFalseChain[0].type !== EdgeType.IfFalse) {
+    throw new Error("Invalid ifFalseChain");
+  }
+  if (ifTrueChain.length < 0 || ifTrueChain[0].type !== EdgeType.IfTrue) {
+    throw new Error("Invalid ifTrueChain");
+  }
+
+  const ifFalse: Cfg = buildLinear(ifFalseChain.slice(1));
+  const ifTrue: Cfg = buildLinear(ifTrueChain.slice(1));
   return {
     type: EdgeType.Conditional,
+    test: {
+      inputs: 1,
+      expr: makeInput(0),
+      void: true,
+      type: null, // Boolean
+    },
     ifFalse,
     ifTrue,
   };

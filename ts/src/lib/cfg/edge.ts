@@ -65,6 +65,7 @@ export interface SubCfgEdge {
 
 export interface ConditionalEdge {
   readonly type: EdgeType.Conditional;
+  readonly test: PartialExpr;
   readonly ifTrue: Cfg;
   readonly ifFalse: Cfg;
 }

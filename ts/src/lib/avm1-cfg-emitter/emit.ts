@@ -2,7 +2,7 @@ import cp from "child_process";
 import { emitExpression } from "../as2-emitter/expression";
 import { emitAction } from "../avm1-asm-emitter/action";
 import { Cfg } from "../cfg/cfg";
-import { Edge, EdgeType } from "../cfg/edge";
+import { ConditionalEdge, Edge, EdgeType, SubCfgEdge } from "../cfg/edge";
 import { Node, NodeType } from "../cfg/node";
 import { CP_STATE_ANY, CP_STATE_UNINITIALIZED } from "../disassembler/constant-pool";
 import { PartialExpr } from "../partial-expr";
@@ -59,7 +59,7 @@ export function emitDot(cfg: Cfg): string {
   const chunks: string[] = [];
   const writer: CfgWriter = new CfgWriter();
   chunks.push("strict digraph {");
-  writer.writeCfg(chunks, cfg);
+  writer.writeCfg(chunks, cfg, "root");
   chunks.push("}");
   return chunks.join("");
 }
@@ -69,24 +69,44 @@ class CfgWriter {
   private graphId: UintIterator;
   private nodeId: UintIterator;
   private nodeToId: Map<Node, string>;
+  private clusterId: UintIterator;
+  private clusterToId: Map<ConditionalEdge | SubCfgEdge, string>;
 
   constructor() {
     this.graphId = new UintIterator();
     this.nodeId = new UintIterator();
     this.nodeToId = new Map();
+    this.clusterId = new UintIterator();
+    this.clusterToId = new Map();
     this.emitConstants = true;
   }
 
-  writeCfg(chunks: string[], cfg: Cfg): void {
-    chunks.push(`subgraph ${this.nextGraphId()} {`);
+  writeCfg(chunks: string[], cfg: Cfg, label: string): void {
+    // The `cluster` prefix is required for proper rendering
+    chunks.push(`subgraph cluster_${this.nextGraphId()} {`);
+    writeSubgraphAttributes(chunks, new Map([["label", label]]));
     for (const node of cfg.iterNodes()) {
       this.writeNode(chunks, node);
     }
+    const conditionals: Set<ConditionalEdge> = new Set();
     for (const {from, to, edge} of cfg.iterEdges()) {
       const fromId: string = this.getNodeId(from);
       const toId: string = this.getNodeId(to);
-      this.writeEdge(chunks, fromId, toId, edge);
+      this.writeEdge(chunks, conditionals, fromId, toId, edge);
     }
+    for (const conditional of conditionals) {
+      this.writeConditional(chunks, conditional);
+    }
+    chunks.push("}");
+  }
+
+  writeConditional(chunks: string[], conditional: ConditionalEdge) {
+    chunks.push(`subgraph cluster_${this.nextGraphId()} {`);
+    const title: string = `conditional#${this.getConditionalId(conditional)}`;
+    const test: string = emitExpressionLabel(conditional.test);
+    writeSubgraphAttributes(chunks, new Map([["label", `${title}\n\n${test}`]]));
+    this.writeCfg(chunks, conditional.ifFalse, "ifFalse");
+    this.writeCfg(chunks, conditional.ifTrue, "ifTrue");
     chunks.push("}");
   }
 
@@ -137,13 +157,17 @@ class CfgWriter {
     chunks.push(";\n");
   }
 
-  writeEdge(chunks: string[], from: string, to: string, edge: Edge): void {
+  writeEdge(chunks: string[], conditionals: Set<ConditionalEdge>, from: string, to: string, edge: Edge): void {
     writeStringLiteral(chunks, from);
     chunks.push(" -> ");
     writeStringLiteral(chunks, to);
     switch (edge.type) {
       case EdgeType.Action:
         writeAttributes(chunks, new Map([["label", emitAction(edge.action)]]));
+        break;
+      case EdgeType.Conditional:
+        writeAttributes(chunks, new Map([["label", `conditional#${this.getConditionalId(edge)}`]]));
+        conditionals.add(edge);
         break;
       case EdgeType.Expression:
         const label: string = emitExpressionLabel(edge.expression);
@@ -157,6 +181,8 @@ class CfgWriter {
         break;
       case EdgeType.IfTest:
         writeAttributes(chunks, new Map([["label", "test"]]));
+        break;
+      case EdgeType.Simple:
         break;
       default:
         writeAttributes(chunks, new Map([["label", `UNKNOWN EDGE TYPE: ${edge.type} (${EdgeType[edge.type]})`]]));
@@ -182,6 +208,21 @@ class CfgWriter {
 
   private nextNodeId(): string {
     return `n${this.nodeId.next().value}`;
+  }
+
+  private getConditionalId(conditional: ConditionalEdge): string {
+    const clusterId: string | undefined = this.clusterToId.get(conditional);
+    if (clusterId !== undefined) {
+      return clusterId;
+    } else {
+      const clusterId: string = this.nextClusterId();
+      this.clusterToId.set(conditional, clusterId);
+      return clusterId;
+    }
+  }
+
+  private nextClusterId(): string {
+    return `c${this.clusterId.next().value}`;
   }
 }
 
@@ -210,16 +251,25 @@ function writeAttributes(chunks: string[], attributes: ReadonlyMap<string, strin
   chunks.push("[");
   let first: boolean = true;
   for (const [key, value] of attributes) {
-    writeStringLiteral(chunks, key);
-    chunks.push("=");
-    writeStringLiteral(chunks, value, key === "label");
     if (first) {
       first = false;
     } else {
       chunks.push(", ");
     }
+    writeStringLiteral(chunks, key);
+    chunks.push("=");
+    writeStringLiteral(chunks, value, key === "label");
   }
   chunks.push("]");
+}
+
+function writeSubgraphAttributes(chunks: string[], attributes: ReadonlyMap<string, string>): void {
+  for (const [key, value] of attributes) {
+    writeStringLiteral(chunks, key);
+    chunks.push("=");
+    writeStringLiteral(chunks, value, key === "label");
+    chunks.push(";\n");
+  }
 }
 
 function emitExpressionLabel(expression: PartialExpr): string {
