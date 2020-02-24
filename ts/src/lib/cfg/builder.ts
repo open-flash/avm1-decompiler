@@ -1,5 +1,6 @@
 import { Avm1Parser } from "avm1-parser";
-import { Action, ActionType } from "avm1-tree";
+import { ActionType } from "avm1-types/action-type";
+import { Action } from "avm1-types/raw/action";
 import { Cfg } from "./cfg";
 import { ActionEdge, Edge, EdgeType, IfFalseEdge, IfTestEdge, IfTrueEdge, SimpleEdge } from "./edge";
 import { EndNode, IfNode, Node, NodeBase, NodeType, SimpleNode } from "./node";
@@ -99,10 +100,10 @@ export function buildLinear(edges: ReadonlyArray<Edge>): Cfg {
 // Control flow graph builder
 export class CfgBuilder {
   private readonly source: BuilderSimpleNode;
-  private readonly inEdges: Map<Node, Map<Node, Edge>>;
+  // private readonly inEdges: Map<Node, Map<Node, Edge>>;
 
   constructor() {
-    this.inEdges = new Map();
+    // this.inEdges = new Map();
     this.source = createSimpleNode() as any as SimpleNode;
   }
 

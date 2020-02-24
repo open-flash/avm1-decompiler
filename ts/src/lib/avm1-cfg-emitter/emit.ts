@@ -13,7 +13,7 @@ import { UintIterator } from "../uint-iterator";
 export async function emitSvg(cfg: Cfg): Promise<string> {
   return new Promise<string>((resolve, reject) => {
     const dot: string = emitDot(cfg);
-    const proc: cp.ChildProcess = cp.spawn("dot", ["-Tsvg"]);
+    const proc: cp.ChildProcessWithoutNullStreams = cp.spawn("dot", ["-Tsvg"]);
     const outChunks: Buffer[] = [];
     const errChunks: Buffer[] = [];
 

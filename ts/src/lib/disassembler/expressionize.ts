@@ -1,5 +1,8 @@
-import { Action, ActionType, Value, ValueType } from "avm1-tree";
-import { Push } from "avm1-tree/actions";
+import { ActionType } from "avm1-types/action-type";
+import { PushValue as Value } from "avm1-types/push-value";
+import { PushValueType as ValueType } from "avm1-types/push-value-type";
+import { Action } from "avm1-types/raw/action";
+import { Push } from "avm1-types/raw/actions/index";
 import { makeCallExpression } from "../as2-tree/call-expression";
 import { Expression } from "../as2-tree/expression";
 import { makeIdentifier } from "../as2-tree/identifier";

@@ -1,4 +1,9 @@
-import { Action, ActionType, CatchTarget, CatchTargetType, GetUrl2Method, ValueType } from "avm1-tree";
+import { ActionType } from "avm1-types/action-type";
+import { CatchTarget } from "avm1-types/catch-target";
+import { CatchTargetType } from "avm1-types/catch-targets/_type";
+import { GetUrl2Method } from "avm1-types/get-url2-method";
+import { PushValueType as ValueType } from "avm1-types/push-value-type";
+import { Action } from "avm1-types/raw/action";
 import {
   ConstantPool,
   DefineFunction,
@@ -17,7 +22,7 @@ import {
   WaitForFrame,
   WaitForFrame2,
   With,
-} from "avm1-tree/actions";
+} from "avm1-types/raw/actions";
 import { Float32, Float64, Sint32, SintSize, Uint8 } from "semantic-types";
 
 export function emitAction(action: Action): string {
@@ -49,6 +54,7 @@ const SIMPLE_ACTIONS: ReadonlyMap<ActionType, string> = new Map([
   [ActionType.Delete, "delete"],
   [ActionType.Delete2, "delete"],
   [ActionType.Divide, "divide"],
+  [ActionType.End, "end"],
   [ActionType.EndDrag, "endDrag"],
   [ActionType.Enumerate, "enumarate"],
   [ActionType.Enumerate2, "enumerate2"],
@@ -173,14 +179,14 @@ function writeAction(chunks: string[], action: Action): void {
       writeWith(chunks, action);
       break;
     default:
-      throw new Error("Unknown action");
+      throw new Error(`Unknown action: ${ActionType[action.action]}`);
   }
 }
 
 function writeConstantPool(chunks: string[], action: ConstantPool): void {
   chunks.push("constantPool");
   chunks.push("(");
-  for (const [i, val] of action.constantPool.entries()) {
+  for (const [i, val] of action.pool.entries()) {
     if (i !== 0) {
       chunks.push(",");
     }
@@ -392,13 +398,13 @@ function writeTry(chunks: string[], action: Try): void {
   if (action.catch !== undefined) {
     chunks.push("catch");
     chunks.push("(");
-    const catchTarget: CatchTarget = action.catchTarget;
+    const catchTarget: CatchTarget = action.catch.target;
     switch (catchTarget.type) {
       case CatchTargetType.Register:
-        writeRegister(chunks, catchTarget.register);
+        writeRegister(chunks, catchTarget.target);
         break;
       case CatchTargetType.Variable:
-        writeIdentifier(chunks, catchTarget.variable);
+        writeIdentifier(chunks, catchTarget.target);
         break;
       default:
         throw new Error(`Unknown CatchTargetType value: ${(catchTarget as any).type}`);
@@ -418,20 +424,20 @@ function writeWaitForFrame(chunks: string[], action: WaitForFrame): void {
   chunks.push("frame=");
   writeSintSizeLiteral(chunks, action.frame);
   chunks.push(",");
-  chunks.push("skipCount=");
-  writeSintSizeLiteral(chunks, action.skipCount);
+  chunks.push("skip=");
+  writeSintSizeLiteral(chunks, action.skip);
   chunks.push(")");
 }
 
 function writeWaitForFrame2(chunks: string[], action: WaitForFrame2): void {
   chunks.push("waitForFrame2");
   chunks.push("(");
-  chunks.push("skipCount=");
-  writeSintSizeLiteral(chunks, action.skipCount);
+  chunks.push("skip=");
+  writeSintSizeLiteral(chunks, action.skip);
   chunks.push(")");
 }
 
-function writeWith(chunks: string[], action: With): void {
+function writeWith(chunks: string[], _action: With): void {
   chunks.push("with");
   chunks.push("{...}");
 }

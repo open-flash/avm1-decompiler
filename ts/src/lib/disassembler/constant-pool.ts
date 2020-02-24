@@ -1,4 +1,7 @@
-import { Action, ActionType, Value, ValueType } from "avm1-tree";
+import { ActionType } from "avm1-types/action-type";
+import { PushValue as Value } from "avm1-types/push-value";
+import { PushValueType as ValueType } from "avm1-types/push-value-type";
+import { Action } from "avm1-types/raw/action";
 import { Cfg } from "../cfg/cfg";
 import { Edge, EdgeType } from "../cfg/edge";
 import { Node, NodeType } from "../cfg/node";
@@ -83,7 +86,7 @@ export class ConstantPoolAnalyzer implements DataFlowAnalyzer<CpState> {
     this.strict = strict;
   }
 
-  initialize(node: Node, cfg: Cfg): CpState {
+  initialize(_node: Node, _cfg: Cfg): CpState {
     return CP_STATE_UNINITIALIZED;
   }
 
@@ -149,7 +152,7 @@ function edgeToConstantPoolUpdate(edge: Edge, strict: boolean): ConstantPoolUpda
     case EdgeType.Action:
       switch (edge.action.action) {
         case ActionType.ConstantPool:
-          return {type: UpdateType.Set, value: edge.action.constantPool};
+          return {type: UpdateType.Set, value: edge.action.pool};
         default:
           return strict ? {type: UpdateType.Unknown} : {type: UpdateType.None};
       }

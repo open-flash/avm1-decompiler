@@ -1,4 +1,4 @@
-import { Action } from "avm1-tree";
+import { Action } from "avm1-types/raw/action";
 import { PartialExpr } from "../partial-expr";
 import { Cfg } from "./cfg";
 

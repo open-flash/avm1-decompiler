@@ -1,18 +1,21 @@
 import gulp from "gulp";
-import minimist, { ParsedArgs } from "minimist";
+import minimist from "minimist";
 import * as buildTools from "turbo-gulp";
+import { Project } from "turbo-gulp/project";
+import { LibTarget, registerLibTasks } from "turbo-gulp/targets/lib";
+import { MochaTarget, registerMochaTasks } from "turbo-gulp/targets/mocha";
+import { NodeTarget, registerNodeTasks } from "turbo-gulp/targets/node";
 
 interface Options {
-  devDist?: string;
+  next?: string;
 }
 
-const options: Options & ParsedArgs = minimist(process.argv.slice(2), {
-  string: ["devDist"],
-  default: {devDist: undefined},
-  alias: {devDist: "dev-dist"},
+const options: Options & minimist.ParsedArgs = minimist(process.argv.slice(2), {
+  string: ["next"],
+  default: {next: undefined},
 });
 
-const project: buildTools.Project = {
+const project: Project = {
   root: __dirname,
   packageJson: "package.json",
   buildDir: "build",
@@ -21,13 +24,13 @@ const project: buildTools.Project = {
   tslint: {
     configuration: {
       rules: {
-        "no-submodule-imports": false,
+        whitespace: false,
       },
     },
   },
 };
 
-const lib: buildTools.LibTarget = {
+const lib: LibTarget = {
   project,
   name: "lib",
   srcDir: "src/lib",
@@ -35,47 +38,41 @@ const lib: buildTools.LibTarget = {
   mainModule: "index",
   dist: {
     packageJsonMap: (old: buildTools.PackageJson): buildTools.PackageJson => {
-      const version: string = options.devDist !== undefined ? `${old.version}-build.${options.devDist}` : old.version;
+      const version: string = options.next !== undefined ? `${old.version}-build.${options.next}` : old.version;
       return <any> {...old, version, scripts: undefined, private: false};
     },
     npmPublish: {
       tag: options.devDist !== undefined ? "next" : "latest",
     },
   },
-  customTypingsDir: "src/custom-typings",
   tscOptions: {
+    declaration: true,
     skipLibCheck: true,
   },
   typedoc: {
     dir: "typedoc",
     name: "AVM1 decompiler",
     deploy: {
-      repository: "git@github.com:open-flash/avm1-decompiler.git",
+      repository: "git@github.com:open-flash/avm1-parser.git",
       branch: "gh-pages",
     },
   },
-  copy: [
-    {
-      files: ["**/*.avm1"],
-    },
-  ],
   clean: {
     dirs: ["build/lib", "dist/lib"],
   },
 };
 
-const test: buildTools.MochaTarget = {
+const test: MochaTarget = {
   project,
   name: "test",
   srcDir: "src",
   scripts: ["test/**/*.ts", "lib/**/*.ts"],
-  customTypingsDir: "src/custom-typings",
   tscOptions: {
     skipLibCheck: true,
   },
   copy: [
     {
-      files: ["**/*.avm1"],
+      files: ["**/*.{aasm1,avm1,json,swf}"],
     },
   ],
   clean: {
@@ -83,14 +80,13 @@ const test: buildTools.MochaTarget = {
   },
 };
 
-const main: buildTools.NodeTarget = {
+const main: NodeTarget = {
   project,
   name: "main",
   srcDir: "src",
   scripts: ["main/**/*.ts", "lib/**/*.ts"],
   tsconfigJson: "src/main/tsconfig.json",
   mainModule: "main/main",
-  customTypingsDir: "src/custom-typings",
   tscOptions: {
     skipLibCheck: true,
   },
@@ -99,10 +95,11 @@ const main: buildTools.NodeTarget = {
   },
 };
 
-const libTasks: any = buildTools.registerLibTasks(gulp, lib);
-buildTools.registerMochaTasks(gulp, test);
-buildTools.registerNodeTasks(gulp, main);
+const libTasks: any = registerLibTasks(gulp, lib);
+registerMochaTasks(gulp, test);
+registerNodeTasks(gulp, main);
 buildTools.projectTasks.registerAll(gulp, project);
 
-gulp.task("all:tsconfig.json", gulp.parallel("lib:tsconfig.json", "test:tsconfig.json", "main:tsconfig.json"));
+gulp.task("all:tsconfig.json", gulp.parallel("lib:tsconfig.json", "main:tsconfig.json", "test:tsconfig.json"));
 gulp.task("dist", libTasks.dist);
+gulp.task("default", libTasks.dist);
