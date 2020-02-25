@@ -1,5 +1,5 @@
-import { UnaryOperator } from "../../as2-tree/unary-operator";
 import { Expression } from "../expression";
+import { UnaryOperator } from "../unary-operator";
 
 export interface UnaryExpression<L = null> {
   type: "UnaryExpression";

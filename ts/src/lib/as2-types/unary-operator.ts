@@ -1,4 +1,7 @@
 export enum UnaryOperator {
-  BitNot,
-  LogicalNot,
+  BitNot = "~",
+  Delete = "delete",
+  LogicalNot = "!",
+  TypeOf = "typeof",
+  Void = "void",
 }
