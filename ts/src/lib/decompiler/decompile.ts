@@ -19,8 +19,8 @@ export function decompileCfg(cfg: Cfg): Script {
   return {type: "Script", loc: null, body};
 }
 
-function decompileActions(cx: ScopeContext, actions: readonly Action[]): Statement[] {
-  const body: Statement[] = [];
+function decompileActions(cx: ScopeContext, actions: readonly Action[]): Statement<null>[] {
+  const body: Statement<null>[] = [];
   for (const action of actions) {
     const actionCx: OpAs2Emitter = new OpAs2Emitter<null>(cx, null, body);
     decompileAction(actionCx, action);
