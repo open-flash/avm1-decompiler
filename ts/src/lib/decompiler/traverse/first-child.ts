@@ -1,12 +1,12 @@
 import { Node, RoNode } from "../../as2-types/node";
 
 // tslint:disable:cyclomatic-complexity
-export function getFirstChild<N extends Node>(node: N): Node<N["loc"]> | undefined;
-export function getFirstChild<N extends RoNode>(node: N): RoNode<N["loc"]> | undefined;
-export function getFirstChild(node: any): any {
+export function getFirstChild<L>(node: Node<L>): Node<L> | undefined;
+export function getFirstChild<L>(node: RoNode<L>): RoNode<L> | undefined;
+export function getFirstChild<L>(node: RoNode<L>): RoNode<L> | undefined {
   switch (node.type) {
     case "Script":
-      return node.body[0];
+      return node.body.length > 0 ? node.body[0] : undefined;
     case "BlockStatement":
       return node.body[0];
     case "EmptyStatement":
@@ -22,35 +22,35 @@ export function getFirstChild(node: any): any {
     case "OpConstantPool":
       return node.pool.length > 0 ? node.pool[0] : undefined;
     case "OpDeclareVariable":
-      throw new Error("NotImplemented");
+      return node.name;
     case "OpEnumerate":
-      throw new Error("NotImplemented");
+      return node.value;
     case "OpInitArray":
-      throw new Error("NotImplemented");
+      return node.target !== null ? node.target : node.itemCount;
     case "OpInitObject":
-      throw new Error("NotImplemented");
+      return node.target !== null ? node.target : node.itemCount;
     case "OpPush":
-      throw new Error("NotImplemented");
+      return node.value;
     case "OpTrace":
       return node.value;
     case "ReturnStatement":
-      throw new Error("NotImplemented");
+      return node.value !== null ? node.value : undefined;
     case "SetVariable":
-      throw new Error("NotImplemented");
+      return node.name;
     case "ThrowStatement":
-      throw new Error("NotImplemented");
+      return node.value;
     case "AssignmentExpression":
-      throw new Error("NotImplemented");
+      return node.target;
     case "BinaryExpression":
-      throw new Error("NotImplemented");
+      return node.left;
     case "BooleanLiteral":
-      throw new Error("NotImplemented");
+      return undefined;
     case "CallExpression":
-      throw new Error("NotImplemented");
+      return node.callee;
     case "ConditionalExpression":
       throw new Error("NotImplemented");
     case "Identifier":
-      throw new Error("NotImplemented");
+      return undefined;
     case "LogicalExpression":
       throw new Error("NotImplemented");
     case "MemberExpression":
@@ -58,39 +58,39 @@ export function getFirstChild(node: any): any {
     case "NewExpression":
       throw new Error("NotImplemented");
     case "NullLiteral":
-      throw new Error("NotImplemented");
+      return undefined;
     case "NumberLiteral":
-      throw new Error("NotImplemented");
+      return undefined;
     case "OpConstant":
-      throw new Error("NotImplemented");
+      return undefined;
     case "OpGlobal":
-      throw new Error("NotImplemented");
+      return undefined;
     case "OpPop":
-      throw new Error("NotImplemented");
+      return undefined;
     case "OpPropertyName":
       throw new Error("NotImplemented");
     case "OpRegister":
-      throw new Error("NotImplemented");
+      return undefined;
     case "OpTemporary":
-      throw new Error("NotImplemented");
+      return undefined;
     case "OpUndefined":
-      throw new Error("NotImplemented");
+      return undefined;
     case "OpVariable":
       throw new Error("NotImplemented");
     case "SequenceExpression":
       throw new Error("NotImplemented");
     case "StringLiteral":
-      throw new Error("NotImplemented");
+      return undefined;
     case "UnaryExpression":
-      throw new Error("NotImplemented");
+      return node.argument;
     case "IdentifierPattern":
-      throw new Error("NotImplemented");
+      return undefined;
     case "MemberPattern":
-      throw new Error("NotImplemented");
+      return node.base;
     case "OpRegisterPattern":
-      throw new Error("NotImplemented");
+      return undefined;
     case "OpTemporaryPattern":
-      throw new Error("NotImplemented");
+      return undefined;
     default:
       throw new Error("Unexpected Node type");
   }

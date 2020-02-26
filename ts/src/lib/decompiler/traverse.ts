@@ -1,67 +1,48 @@
 import { Node, RoNode } from "../as2-types/node";
 import { Script } from "../as2-types/script";
-import { Statement } from "../as2-types/statement";
 import { buildTreeState, TreeState } from "./traverse/build";
 import { getFirstChild } from "./traverse/first-child";
 import { getNextSibling } from "./traverse/next-sibling";
+import { Path } from "./traverse/path";
 import { Traversal } from "./traverse/traversal";
 import { TraversalEvent } from "./traverse/traversal-event";
 import { NodeParent } from "./traverse/tree-state";
-
-export enum VisitorAction {
-  /**
-   * Advance to the next node in the traversal.
-   */
-  Advance,
-
-  /**
-   * Skip all sub-trees of the current node.
-   */
-  Skip,
-
-  /**
-   * Stop the traversal.
-   */
-  Stop,
-}
-
-export interface Visitor<L, S> {
-  node?: VisitorFn<RoNode<L>, S>;
-  // expressionStatement?: VisitorFn<RoExpressionStatement<L>, S>;
-  // opPush?: VisitorFn<RoOpPush<L>, S>;
-  // statement?: VisitorFn<RoStatement<L>, S>;
-}
-
-export interface VisitorFn<N extends RoNode, S> {
-  enter?(path: Path<N>, state: S): VisitorAction | undefined;
-
-  exit?(path: Path<N>, state: S): VisitorAction | undefined;
-}
+import { ResolvedVisitor, resolveVisitor, Visitor, VisitorAction } from "./traverse/visitor";
 
 export class Tree<L = unknown> {
   readonly root: Script<L>;
   private readonly traversals: Traversal<L, unknown>[];
   private readonly parents: WeakMap<RoNode<L>, NodeParent<Node<L>>>;
+  private readonly paths: WeakMap<RoNode<L>, Path<RoNode<L>>>;
 
   constructor(root: Script<L>) {
-    const state: TreeState<L> = buildTreeState(root);
+    const state: TreeState<L> = buildTreeState(this, root);
     this.root = state.root;
     this.traversals = [];
     this.parents = state.parents;
+    this.paths = state.paths;
   }
 
-  traverse<S>(visitor: Visitor<L, S>, state: S): S {
-    const traversal: Traversal<L, S> = {node: this.root, state, event: TraversalEvent.Enter};
+  public traverse<S>(visitor: Visitor<L, S>, state: S): S {
+    return this.traverseFrom(this.root, visitor, state);
+  }
+
+  public traverseFrom<S>(node: RoNode<L>, visitor: Visitor<L, S>, state: S): S {
+    const resolvedVisitor: ResolvedVisitor<L, S> = resolveVisitor(visitor);
+    const traversal: Traversal<L, S> = {node, state, event: TraversalEvent.Enter};
     this.traversals.push(traversal);
     let done: boolean = false;
     while (!done) {
-      let action: VisitorAction;
-      if (traversal.event === TraversalEvent.Enter) {
-        action = this.onEnter(visitor, traversal.node, traversal.state);
+      const path: Path<RoNode<L>> = this.path(traversal.node);
+      const action: VisitorAction | undefined = path.visit(
+        traversal.event === TraversalEvent.Enter ? resolvedVisitor.enter : resolvedVisitor.exit,
+        traversal.state,
+      );
+      if (action === VisitorAction.Stop) {
+        done = true;
       } else {
-        action = this.onExit(visitor, traversal.node, traversal.state);
+        done = this.advance(traversal, action === VisitorAction.Skip);
       }
-      done = this.advance(traversal, action === VisitorAction.Skip);
     }
     this.traversals.pop();
     return traversal.state;
@@ -78,6 +59,15 @@ export class Tree<L = unknown> {
    */
   public contains(node: RoNode<L>): boolean {
     return node === this.root || this.parents.has(node);
+  }
+
+  // public path<N extends RoNode<L>>(node: N): Path<N>;
+  public path(node: RoNode<L>): Path<RoNode<L>> {
+    const path: Path<RoNode<L>> | undefined = this.paths.get(node);
+    if (path === undefined) {
+      throw new Error("AssertionError: input node is not in this tree");
+    }
+    return path;
   }
 
   public parent(node: RoNode<L>): NodeParent<Node<L>> | null {
@@ -123,49 +113,5 @@ export class Tree<L = unknown> {
       traversal.event = TraversalEvent.Exit;
     }
     return false;
-  }
-
-  private onEnter<S>(visitor: Visitor<L, S>, node: RoNode<L>, state: S): VisitorAction {
-    let action: VisitorAction | undefined;
-    if (visitor.node !== undefined && visitor.node.enter !== undefined) {
-      const path: Path<RoNode<L>> = new Path(this, node);
-      action = visitor.node.enter(path, state);
-    }
-    // if (visitor.statement !== undefined && visitor.statement.enter !== undefined && this.isStatement(node)) {
-    //   const path: Path<RoStatement<L>> = new Path<RoStatement<L>>(this, node);
-    //   action = visitor.statement.enter(path, state);
-    // }
-    return action ?? VisitorAction.Advance;
-  }
-
-  private onExit<S>(visitor: Visitor<L, S>, node: RoNode<L>, state: S): VisitorAction {
-    let action: VisitorAction | undefined;
-    if (visitor.node !== undefined && visitor.node.exit !== undefined) {
-      const path: Path<RoNode<L>> = new Path(this, node);
-      action = visitor.node.exit(path, state);
-    }
-    return action ?? VisitorAction.Advance;
-  }
-
-  // private isStatement<L>(node: RoNode<L>): node is RoStatement<L> {
-  //   return node.type === "ExpressionStatement";
-  // }
-}
-
-class Path<N extends RoNode> {
-  private readonly _tree: Tree<N["loc"]>;
-  private readonly _node: N;
-
-  constructor(tree: Tree<N["loc"]>, node: N) {
-    this._tree = tree;
-    this._node = node;
-  }
-
-  node(): N {
-    return this._node;
-  }
-
-  replaceWith(statement: Statement<N["loc"]>) {
-    this._tree.replaceWith(this._node, statement);
   }
 }

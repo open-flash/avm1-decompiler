@@ -1,7 +1,18 @@
+import { AssignmentExpression, RoAssignmentExpression } from "../../as2-types/expressions/assignment-expression";
+import { RoStringLiteral, StringLiteral } from "../../as2-types/expressions/string-literal";
+import { RoUnaryExpression, UnaryExpression } from "../../as2-types/expressions/unary-expression";
 import { Node, RoNode } from "../../as2-types/node";
+import { OpRegisterPattern, RoOpRegisterPattern } from "../../as2-types/op-patterns/op-register-pattern";
 import { OpCallFunction, RoOpCallFunction } from "../../as2-types/op-statements/op-call-function";
-import { RoOpConstantPool } from "../../as2-types/op-statements/op-constant-pool";
-import { RoOpTrace } from "../../as2-types/op-statements/op-trace";
+import { OpConstantPool, RoOpConstantPool } from "../../as2-types/op-statements/op-constant-pool";
+import { OpDeclareVariable, RoOpDeclareVariable } from "../../as2-types/op-statements/op-declare-variable";
+import { OpEnumerate, RoOpEnumerate } from "../../as2-types/op-statements/op-enumerate";
+import { OpInitArray, RoOpInitArray } from "../../as2-types/op-statements/op-init-array";
+import { OpInitObject, RoOpInitObject } from "../../as2-types/op-statements/op-init-object";
+import { OpPush, RoOpPush } from "../../as2-types/op-statements/op-push";
+import { OpTrace, RoOpTrace } from "../../as2-types/op-statements/op-trace";
+import { IdentifierPattern, RoIdentifierPattern } from "../../as2-types/patterns/identifier-pattern";
+import { MemberPattern, RoMemberPattern } from "../../as2-types/patterns/member-pattern";
 import { RoScript, Script } from "../../as2-types/script";
 import { BlockStatement, RoBlockStatement } from "../../as2-types/statements/block-statement";
 import { RoEmptyStatement } from "../../as2-types/statements/empty-statement";
@@ -33,15 +44,15 @@ export function getNextSibling(parent: any): any {
     case "OpConstantPool":
       return opConstantPool(parent);
     case "OpDeclareVariable":
-      throw new Error("NotImplemented");
+      return opDeclareVariable(parent);
     case "OpEnumerate":
-      throw new Error("NotImplemented");
+      return opEnumerate(parent);
     case "OpInitArray":
-      throw new Error("NotImplemented");
+      return opInitArray(parent);
     case "OpInitObject":
-      throw new Error("NotImplemented");
+      return opInitObject(parent);
     case "OpPush":
-      throw new Error("NotImplemented");
+      return opPush(parent);
     case "OpTrace":
       return opTrace(parent);
     case "ReturnStatement":
@@ -51,7 +62,7 @@ export function getNextSibling(parent: any): any {
     case "ThrowStatement":
       throw new Error("NotImplemented");
     case "AssignmentExpression":
-      throw new Error("NotImplemented");
+      return assignmentExpression(parent);
     case "BinaryExpression":
       throw new Error("NotImplemented");
     case "BooleanLiteral":
@@ -91,25 +102,24 @@ export function getNextSibling(parent: any): any {
     case "SequenceExpression":
       throw new Error("NotImplemented");
     case "StringLiteral":
-      throw new Error("NotImplemented");
+      return stringLiteral(parent);
     case "UnaryExpression":
-      throw new Error("NotImplemented");
+      return unaryExpression(parent);
     case "IdentifierPattern":
-      throw new Error("NotImplemented");
+      return identifierPattern(parent);
     case "MemberPattern":
-      throw new Error("NotImplemented");
+      return memberPattern(parent);
     case "OpRegisterPattern":
-      throw new Error("NotImplemented");
+      return opRegisterPattern(parent);
     case "OpTemporaryPattern":
-      throw new Error("NotImplemented");
+      return opTemporaryPattern(parent);
     default:
       throw new Error("Unexpected Node type");
   }
 }
 
 function script<N extends Script>(parent: NodeParent<N>): Node<N["loc"]> | undefined;
-function script<N extends RoScript>(parent: NodeParent<N>): RoNode<N["loc"]> | undefined;
-function script(parent: any): any {
+function script<N extends RoScript>(parent: NodeParent<N>): RoNode<N["loc"]> | undefined {
   const nextIndex: number = parent.index + 1;
   if (nextIndex < parent.node.body.length) {
     return parent.node.body[nextIndex];
@@ -119,8 +129,7 @@ function script(parent: any): any {
 }
 
 function blockStatement<N extends BlockStatement>(parent: NodeParent<N>): Node<N["loc"]> | undefined;
-function blockStatement<N extends RoBlockStatement>(parent: NodeParent<N>): RoNode<N["loc"]> | undefined;
-function blockStatement(parent: any): any {
+function blockStatement<N extends RoBlockStatement>(parent: NodeParent<N>): RoNode<N["loc"]> | undefined {
   const nextIndex: number = parent.index + 1;
   if (nextIndex < parent.node.body.length) {
     return parent.node.body[nextIndex];
@@ -139,8 +148,7 @@ function expressionStatement<N extends RoExpressionStatement>(_parent: NodeParen
 
 function ifFrameLoadedStatement<N extends IfFrameLoadedStatement>(parent: NodeParent<N>): Node<N["loc"]> | undefined;
 // tslint:disable-next-line:max-line-length
-function ifFrameLoadedStatement<N extends RoIfFrameLoadedStatement>(parent: NodeParent<N>): RoNode<N["loc"]> | undefined;
-function ifFrameLoadedStatement(parent: any): any {
+function ifFrameLoadedStatement<N extends RoIfFrameLoadedStatement>(parent: NodeParent<N>): RoNode<N["loc"]> | undefined {
   switch (parent.key) {
     case "scene":
       return parent.node.frame;
@@ -160,8 +168,7 @@ function ifFrameLoadedStatement(parent: any): any {
 }
 
 function ifStatement<N extends IfStatement>(parent: NodeParent<N>): Node<N["loc"]> | undefined;
-function ifStatement<N extends RoIfStatement>(parent: NodeParent<N>): RoNode<N["loc"]> | undefined;
-function ifStatement(parent: any): any {
+function ifStatement<N extends RoIfStatement>(parent: NodeParent<N>): RoNode<N["loc"]> | undefined {
   switch (parent.key) {
     case "test":
       return parent.node.truthy;
@@ -179,15 +186,14 @@ function ifStatement(parent: any): any {
 }
 
 function opCallFunction<N extends OpCallFunction>(parent: NodeParent<N>): Node<N["loc"]> | undefined;
-function opCallFunction<N extends RoOpCallFunction>(parent: NodeParent<N>): RoNode<N["loc"]> | undefined;
-function opCallFunction(parent: any): any {
+function opCallFunction<N extends RoOpCallFunction>(parent: NodeParent<N>): RoNode<N["loc"]> | undefined {
   switch (parent.key) {
     case "target":
       return parent.node.callee;
     // @ts-ignore
     case "callee":
-      if (parent.node.falsy !== null) {
-        return parent.node.falsy;
+      if (parent.node.callee !== null) {
+        return parent.node.callee;
       }
       // Fall-through
     case "argCount":
@@ -197,7 +203,8 @@ function opCallFunction(parent: any): any {
   }
 }
 
-function opConstantPool<N extends RoOpConstantPool>(parent: NodeParent<N>): Node<N["loc"]> | undefined {
+function opConstantPool<N extends OpConstantPool>(parent: NodeParent<N>): Node<N["loc"]> | undefined;
+function opConstantPool<N extends RoOpConstantPool>(parent: NodeParent<N>): RoNode<N["loc"]> | undefined {
   const nextIndex: number = parent.index + 1;
   if (nextIndex < parent.node.pool.length) {
     return parent.node.pool[nextIndex];
@@ -206,11 +213,126 @@ function opConstantPool<N extends RoOpConstantPool>(parent: NodeParent<N>): Node
   }
 }
 
-function opTrace<N extends RoOpTrace>(parent: NodeParent<N>): Node<N["loc"]> | undefined {
+function opDeclareVariable<N extends OpDeclareVariable>(parent: NodeParent<N>): Node<N["loc"]> | undefined;
+function opDeclareVariable<N extends RoOpDeclareVariable>(parent: NodeParent<N>): RoNode<N["loc"]> | undefined {
+  switch (parent.key) {
+    // @ts-ignore
+    case "name":
+      if (parent.node.value !== null) {
+        return parent.node.value;
+      }
+    // Fall-through
+    case "value":
+      return undefined;
+    default:
+      throw new Error("AssertionError: unexpected key");
+  }
+}
+
+function opEnumerate<N extends OpEnumerate>(parent: NodeParent<N>): Node<N["loc"]> | undefined;
+function opEnumerate<N extends RoOpEnumerate>(parent: NodeParent<N>): RoNode<N["loc"]> | undefined {
   switch (parent.key) {
     case "value":
       return undefined;
     default:
       throw new Error("AssertionError: unexpected key");
   }
+}
+
+function opInitArray<N extends OpInitArray>(parent: NodeParent<N>): Node<N["loc"]> | undefined;
+function opInitArray<N extends RoOpInitArray>(parent: NodeParent<N>): RoNode<N["loc"]> | undefined {
+  switch (parent.key) {
+    case "target":
+      return parent.node.itemCount;
+    case "itemCount":
+      return undefined;
+    default:
+      throw new Error("AssertionError: unexpected key");
+  }
+}
+
+function opInitObject<N extends OpInitObject>(parent: NodeParent<N>): Node<N["loc"]> | undefined;
+function opInitObject<N extends RoOpInitObject>(parent: NodeParent<N>): RoNode<N["loc"]> | undefined {
+  switch (parent.key) {
+    case "target":
+      return parent.node.itemCount;
+    case "itemCount":
+      return undefined;
+    default:
+      throw new Error("AssertionError: unexpected key");
+  }
+}
+
+function opPush<N extends OpPush>(parent: NodeParent<N>): Node<N["loc"]> | undefined;
+function opPush<N extends RoOpPush>(parent: NodeParent<N>): RoNode<N["loc"]> | undefined {
+  switch (parent.key) {
+    case "value":
+      return undefined;
+    default:
+      throw new Error("AssertionError: unexpected key");
+  }
+}
+
+function opTrace<N extends OpTrace>(parent: NodeParent<N>): Node<N["loc"]> | undefined;
+function opTrace<N extends RoOpTrace>(parent: NodeParent<N>): RoNode<N["loc"]> | undefined {
+  switch (parent.key) {
+    case "value":
+      return undefined;
+    default:
+      throw new Error("AssertionError: unexpected key");
+  }
+}
+
+function assignmentExpression<N extends AssignmentExpression>(parent: NodeParent<N>): Node<N["loc"]> | undefined;
+function assignmentExpression<N extends RoAssignmentExpression>(parent: NodeParent<N>): RoNode<N["loc"]> | undefined {
+  switch (parent.key) {
+    case "target":
+      return parent.node.value;
+    case "value":
+      return undefined;
+    default:
+      throw new Error("AssertionError: unexpected key");
+  }
+}
+
+function stringLiteral<N extends StringLiteral>(_parent: NodeParent<N>): Node<N["loc"]> | undefined;
+function stringLiteral<N extends RoStringLiteral>(_parent: NodeParent<N>): RoNode<N["loc"]> | undefined {
+  return undefined;
+}
+
+function unaryExpression<N extends UnaryExpression>(parent: NodeParent<N>): Node<N["loc"]> | undefined;
+function unaryExpression<N extends RoUnaryExpression>(parent: NodeParent<N>): RoNode<N["loc"]> | undefined {
+  switch (parent.key) {
+    case "argument":
+      return undefined;
+    default:
+      throw new Error("AssertionError: unexpected key");
+  }
+}
+
+function identifierPattern<N extends IdentifierPattern>(_parent: NodeParent<N>): Node<N["loc"]> | undefined;
+function identifierPattern<N extends RoIdentifierPattern>(_parent: NodeParent<N>): RoNode<N["loc"]> | undefined {
+  return undefined;
+}
+
+function memberPattern<N extends MemberPattern>(parent: NodeParent<N>): Node<N["loc"]> | undefined;
+function memberPattern<N extends RoMemberPattern>(parent: NodeParent<N>): RoNode<N["loc"]> | undefined {
+  switch (parent.key) {
+    case "base":
+      return parent.node.key;
+    case "key":
+      return undefined;
+    default:
+      throw new Error("AssertionError: unexpected key");
+  }
+}
+
+function opRegisterPattern<N extends OpRegisterPattern>(_parent: NodeParent<N>): Node<N["loc"]> | undefined;
+function opRegisterPattern<N extends RoOpRegisterPattern>(_parent: NodeParent<N>): RoNode<N["loc"]> | undefined {
+  return undefined;
+}
+
+function opTemporaryPattern<N extends OpRegisterPattern>(_parent: NodeParent<N>): Node<N["loc"]> | undefined;
+function opTemporaryPattern<N extends RoOpRegisterPattern>(_parent: NodeParent<N>): RoNode<N["loc"]> | undefined {
+  return undefined;
 }
