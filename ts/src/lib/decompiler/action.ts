@@ -15,8 +15,6 @@ import { NumberLiteral } from "../as2-types/expressions/number-literal";
 import { StringLiteral } from "../as2-types/expressions/string-literal";
 import { UnaryExpression } from "../as2-types/expressions/unary-expression";
 import { OpConstant } from "../as2-types/op-expressions/op-constant";
-import { OpInitArray } from "../as2-types/op-expressions/op-init-array";
-import { OpInitObject } from "../as2-types/op-expressions/op-init-object";
 import { OpPop } from "../as2-types/op-expressions/op-pop";
 import { OpPropertyName } from "../as2-types/op-expressions/op-property-name";
 import { OpRegister } from "../as2-types/op-expressions/op-register";
@@ -24,8 +22,11 @@ import { OpTemporary } from "../as2-types/op-expressions/op-temporary";
 import { OpUndefined } from "../as2-types/op-expressions/op-undefined";
 import { OpVariable } from "../as2-types/op-expressions/op-variable";
 import { OpRegisterPattern } from "../as2-types/op-patterns/op-register-pattern";
+import { OpTemporaryPattern } from "../as2-types/op-patterns/op-temporary-pattern";
 import { OpConstantPool } from "../as2-types/op-statements/op-constant-pool";
 import { OpDeclareVariable } from "../as2-types/op-statements/op-declare-variable";
+import { OpInitArray } from "../as2-types/op-statements/op-init-array";
+import { OpInitObject } from "../as2-types/op-statements/op-init-object";
 import { OpPush } from "../as2-types/op-statements/op-push";
 import { OpTrace } from "../as2-types/op-statements/op-trace";
 import { Pattern } from "../as2-types/pattern";
@@ -44,7 +45,7 @@ export class ScopeContext {
   /**
    * Create a new temporary variable.
    */
-  public createTemporary(): number {
+  public allocTemporary(): number {
     return this.nextTemporaryId++;
   }
 }
@@ -61,7 +62,7 @@ export class OpAs2Emitter<L = null> {
   }
 
   public allocTemp(): number {
-    return this.region.createTemporary();
+    return this.region.allocTemporary();
   }
 
   public write(statement: Statement<L>): void {
@@ -94,6 +95,14 @@ export class OpAs2Emitter<L = null> {
     return {type: "OpDeclareVariable", loc: this.loc, name, value};
   }
 
+  public opInitArray(target: OpTemporaryPattern<L> | null, itemCount: Expression<L>): OpInitArray<L> {
+    return {type: "OpInitArray", loc: this.loc, target, itemCount};
+  }
+
+  public opInitObject(target: OpTemporaryPattern<L> | null, itemCount: Expression<L>): OpInitObject<L> {
+    return {type: "OpInitObject", loc: this.loc, target, itemCount};
+  }
+
   public opPush(value: Expression<L>): OpPush<L> {
     return {type: "OpPush", loc: this.loc, value};
   }
@@ -112,6 +121,10 @@ export class OpAs2Emitter<L = null> {
 
   public opRegPattern(id: number): OpRegisterPattern<L> {
     return {type: "OpRegisterPattern", loc: this.loc, id};
+  }
+
+  public opTempPattern(id: number): OpTemporaryPattern<L> {
+    return {type: "OpTemporaryPattern", loc: this.loc, id};
   }
 
   public simpleAssignment(target: Pattern<L>, value: Expression<L>): AssignmentExpression<L> {
@@ -144,14 +157,6 @@ export class OpAs2Emitter<L = null> {
 
   public opConst(id: number): OpConstant<L> {
     return {type: "OpConstant", loc: this.loc, id};
-  }
-
-  public opInitArray(itemCount: Expression<L>): OpInitArray<L> {
-    return {type: "OpInitArray", loc: this.loc, itemCount};
-  }
-
-  public opInitObject(itemCount: Expression<L>): OpInitObject<L> {
-    return {type: "OpInitObject", loc: this.loc, itemCount};
   }
 
   public opPop(): OpPop<L> {
@@ -440,13 +445,17 @@ function decompileIncrement<L>(cx: OpAs2Emitter<L>): void {
 }
 
 function decompileInitArray<L>(cx: OpAs2Emitter<L>): void {
+  const target: number = cx.allocTemp();
   const count: number = cx.writePopTemp();
-  cx.writePush(cx.opInitArray(cx.opTemp(count)));
+  cx.write(cx.opInitArray(cx.opTempPattern(target), cx.opTemp(count)));
+  cx.writePush(cx.opTemp(target));
 }
 
 function decompileInitObject<L>(cx: OpAs2Emitter<L>): void {
+  const target: number = cx.allocTemp();
   const count: number = cx.writePopTemp();
-  cx.writePush(cx.opInitObject(cx.opTemp(count)));
+  cx.write(cx.opInitObject(cx.opTempPattern(target), cx.opTemp(count)));
+  cx.writePush(cx.opTemp(target));
 }
 
 function decompilePop(cx: OpAs2Emitter): void {

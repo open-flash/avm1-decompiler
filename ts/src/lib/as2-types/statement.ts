@@ -1,6 +1,9 @@
+import { OpCallFunction } from "./op-statements/op-call-function";
 import { OpConstantPool } from "./op-statements/op-constant-pool";
 import { OpDeclareVariable } from "./op-statements/op-declare-variable";
 import { OpEnumerate } from "./op-statements/op-enumerate";
+import { OpInitArray } from "./op-statements/op-init-array";
+import { OpInitObject } from "./op-statements/op-init-object";
 import { OpPush } from "./op-statements/op-push";
 import { OpTrace } from "./op-statements/op-trace";
 import { BlockStatement } from "./statements/block-statement";
@@ -18,9 +21,12 @@ export type Statement<L = null> =
   | ExpressionStatement<L>
   | IfFrameLoadedStatement<L>
   | IfStatement<L>
+  | OpCallFunction<L>
   | OpConstantPool<L>
   | OpDeclareVariable<L>
   | OpEnumerate<L>
+  | OpInitArray<L>
+  | OpInitObject<L>
   | OpPush<L>
   | OpTrace<L>
   | ReturnStatement<L>

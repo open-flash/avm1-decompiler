@@ -12,11 +12,8 @@ import { NumberLiteral } from "./expressions/number-literal";
 import { SequenceExpression } from "./expressions/sequence-expression";
 import { StringLiteral } from "./expressions/string-literal";
 import { UnaryExpression } from "./expressions/unary-expression";
-import { OpCallFunction } from "./op-expressions/op-call-function";
 import { OpConstant } from "./op-expressions/op-constant";
 import { OpGlobal } from "./op-expressions/op-global";
-import { OpInitArray } from "./op-expressions/op-init-array";
-import { OpInitObject } from "./op-expressions/op-init-object";
 import { OpPop } from "./op-expressions/op-pop";
 import { OpPropertyName } from "./op-expressions/op-property-name";
 import { OpRegister } from "./op-expressions/op-register";
@@ -38,11 +35,8 @@ export type Expression<L = null> = AssignmentExpression<L>
   | NewExpression<L>
   | NullLiteral<L>
   | NumberLiteral<L>
-  | OpCallFunction<L>
   | OpConstant<L>
   | OpGlobal<L>
-  | OpInitArray<L>
-  | OpInitObject<L>
   | OpPop<L>
   | OpPropertyName<L>
   | OpRegister<L>

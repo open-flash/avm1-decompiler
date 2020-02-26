@@ -9,8 +9,6 @@ import { NumberLiteral } from "../as2-types/expressions/number-literal";
 import { StringLiteral } from "../as2-types/expressions/string-literal";
 import { UnaryExpression } from "../as2-types/expressions/unary-expression";
 import { OpConstant } from "../as2-types/op-expressions/op-constant";
-import { OpInitArray } from "../as2-types/op-expressions/op-init-array";
-import { OpInitObject } from "../as2-types/op-expressions/op-init-object";
 import { OpPropertyName } from "../as2-types/op-expressions/op-property-name";
 import { OpRegister } from "../as2-types/op-expressions/op-register";
 import { OpTemporary } from "../as2-types/op-expressions/op-temporary";
@@ -19,6 +17,8 @@ import { OpRegisterPattern } from "../as2-types/op-patterns/op-register-pattern"
 import { OpTemporaryPattern } from "../as2-types/op-patterns/op-temporary-pattern";
 import { OpConstantPool } from "../as2-types/op-statements/op-constant-pool";
 import { OpDeclareVariable } from "../as2-types/op-statements/op-declare-variable";
+import { OpInitArray } from "../as2-types/op-statements/op-init-array";
+import { OpInitObject } from "../as2-types/op-statements/op-init-object";
 import { OpPush } from "../as2-types/op-statements/op-push";
 import { OpTrace } from "../as2-types/op-statements/op-trace";
 import { Pattern } from "../as2-types/pattern";
@@ -76,6 +76,12 @@ class As2Emitter {
         return this.writeOpConstantPool(statement);
       case "OpDeclareVariable":
         return this.writeOpDeclareVariable(statement);
+      case "OpEnumerate":
+        throw new Error("NotImplemented");
+      case "OpInitArray":
+        return this.writeOpInitArray(statement);
+      case "OpInitObject":
+        return this.writeOpInitObject(statement);
       case "OpPush":
         return this.writeOpPush(statement);
       case "OpTrace":
@@ -133,6 +139,26 @@ class As2Emitter {
     this.endStatement();
   }
 
+  writeOpInitArray(statement: OpInitArray<unknown>): void {
+    if (statement.target !== null) {
+      this.writeOpTemporaryPattern(statement.target);
+      this.write(" = ");
+    }
+    this.write("@array(");
+    this.writeExpression(statement.itemCount);
+    this.write(")");
+  }
+
+  writeOpInitObject(statement: OpInitObject<unknown>): void {
+    if (statement.target !== null) {
+      this.writeOpTemporaryPattern(statement.target);
+      this.write(" = ");
+    }
+    this.write("@object(");
+    this.writeExpression(statement.itemCount);
+    this.write(")");
+  }
+
   writeOpPush(statement: OpPush<unknown>): void {
     this.write("@push(");
     this.writeExpression(statement.value);
@@ -183,10 +209,6 @@ class As2Emitter {
         return this.writeOpConstant(expression);
       case "OpGlobal":
         return this.writeOpGlobal();
-      case "OpInitArray":
-        return this.writeOpInitArray(expression);
-      case "OpInitObject":
-        return this.writeOpInitObject(expression);
       case "OpPop":
         return this.writeOpPop();
       case "OpPropertyName":
@@ -324,18 +346,6 @@ class As2Emitter {
 
   writeOpGlobal(): void {
     this.write("@global");
-  }
-
-  writeOpInitArray(expression: OpInitArray<unknown>): void {
-    this.write("@array(");
-    this.writeExpression(expression.itemCount);
-    this.write(")");
-  }
-
-  writeOpInitObject(expression: OpInitObject<unknown>): void {
-    this.write("@object(");
-    this.writeExpression(expression.itemCount);
-    this.write(")");
   }
 
   writeOpPop(): void {
