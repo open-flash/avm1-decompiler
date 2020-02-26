@@ -6,6 +6,7 @@ import { Script } from "../../lib/as2-types/script";
 import { decompileCfg } from "../../lib/decompiler/decompile";
 import meta from "./meta.js";
 import { readTextFile, writeTextFile } from "./utils";
+import { emitScript } from "../../lib/as2-emitter/emitter";
 
 const PROJECT_ROOT: string = sysPath.join(meta.dirname, "..", "..", "..", "..");
 console.log(PROJECT_ROOT);
@@ -32,7 +33,10 @@ describe("avm1", function () {
 
       const actualScript: Script = decompileCfg(inputCfg);
       const actualScriptJson: string = `${JSON.stringify(actualScript, null, 2)}\n`;
-      await writeTextFile(sysPath.join(sample.root, "local-main.ts.opas2.json"), actualScriptJson);
+      await writeTextFile(sysPath.join(sample.root, "local-main.ts.json"), actualScriptJson);
+
+      const actualSource: string = emitScript(actualScript);
+      await writeTextFile(sysPath.join(sample.root, "local-main.ts.opas2"), actualSource);
     });
   }
 });

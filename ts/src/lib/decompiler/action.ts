@@ -34,7 +34,7 @@ import { Statement } from "../as2-types/statement";
 import { SetVariable } from "../as2-types/statements/set-variable";
 import { UnaryOperator } from "../as2-types/unary-operator";
 
-export class RegionContext {
+export class ScopeContext {
   private nextTemporaryId: number;
 
   public constructor() {
@@ -50,11 +50,11 @@ export class RegionContext {
 }
 
 export class OpAs2Emitter<L = null> {
-  private readonly region: RegionContext;
+  private readonly region: ScopeContext;
   private readonly loc: L;
   private readonly stream: Statement<L>[];
 
-  constructor(region: RegionContext, loc: L, stream: Statement<L>[]) {
+  constructor(region: ScopeContext, loc: L, stream: Statement<L>[]) {
     this.region = region;
     this.loc = loc;
     this.stream = stream;
@@ -146,12 +146,12 @@ export class OpAs2Emitter<L = null> {
     return {type: "OpConstant", loc: this.loc, id};
   }
 
-  public opInitArray(): OpInitArray<L> {
-    return {type: "OpInitArray", loc: this.loc};
+  public opInitArray(itemCount: Expression<L>): OpInitArray<L> {
+    return {type: "OpInitArray", loc: this.loc, itemCount};
   }
 
-  public opInitObject(): OpInitObject<L> {
-    return {type: "OpInitObject", loc: this.loc};
+  public opInitObject(itemCount: Expression<L>): OpInitObject<L> {
+    return {type: "OpInitObject", loc: this.loc, itemCount};
   }
 
   public opPop(): OpPop<L> {
@@ -440,11 +440,13 @@ function decompileIncrement<L>(cx: OpAs2Emitter<L>): void {
 }
 
 function decompileInitArray<L>(cx: OpAs2Emitter<L>): void {
-  cx.writePush(cx.opInitArray());
+  const count: number = cx.writePopTemp();
+  cx.writePush(cx.opInitArray(cx.opTemp(count)));
 }
 
 function decompileInitObject<L>(cx: OpAs2Emitter<L>): void {
-  cx.writePush(cx.opInitObject());
+  const count: number = cx.writePopTemp();
+  cx.writePush(cx.opInitObject(cx.opTemp(count)));
 }
 
 function decompilePop(cx: OpAs2Emitter): void {

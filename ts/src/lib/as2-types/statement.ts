@@ -1,5 +1,6 @@
 import { OpConstantPool } from "./op-statements/op-constant-pool";
 import { OpDeclareVariable } from "./op-statements/op-declare-variable";
+import { OpEnumerate } from "./op-statements/op-enumerate";
 import { OpPush } from "./op-statements/op-push";
 import { OpTrace } from "./op-statements/op-trace";
 import { BlockStatement } from "./statements/block-statement";
@@ -19,6 +20,7 @@ export type Statement<L = null> =
   | IfStatement<L>
   | OpConstantPool<L>
   | OpDeclareVariable<L>
+  | OpEnumerate<L>
   | OpPush<L>
   | OpTrace<L>
   | ReturnStatement<L>
