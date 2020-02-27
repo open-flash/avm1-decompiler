@@ -48,15 +48,15 @@ export function getFirstChild<L>(node: RoNode<L>): RoNode<L> | undefined {
     case "CallExpression":
       return node.callee;
     case "ConditionalExpression":
-      throw new Error("NotImplemented");
+      return node.test;
     case "Identifier":
       return undefined;
     case "LogicalExpression":
-      throw new Error("NotImplemented");
+      return node.left;
     case "MemberExpression":
-      throw new Error("NotImplemented");
+      return node.base;
     case "NewExpression":
-      throw new Error("NotImplemented");
+      return node.callee;
     case "NullLiteral":
       return undefined;
     case "NumberLiteral":
@@ -68,7 +68,7 @@ export function getFirstChild<L>(node: RoNode<L>): RoNode<L> | undefined {
     case "OpPop":
       return undefined;
     case "OpPropertyName":
-      throw new Error("NotImplemented");
+      return node.index;
     case "OpRegister":
       return undefined;
     case "OpTemporary":
@@ -76,9 +76,9 @@ export function getFirstChild<L>(node: RoNode<L>): RoNode<L> | undefined {
     case "OpUndefined":
       return undefined;
     case "OpVariable":
-      throw new Error("NotImplemented");
+      return node.name;
     case "SequenceExpression":
-      throw new Error("NotImplemented");
+      return node.expressions.length > 0 ? node.expressions[0] : undefined;
     case "StringLiteral":
       return undefined;
     case "UnaryExpression":
