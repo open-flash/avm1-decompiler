@@ -112,17 +112,18 @@ export function buildTreeState<L>(tree: Tree<L>, root: Script<L>): TreeState<L> 
   return state;
 }
 
-function script<L>(state: TreeState<L>, node: Script<L>): void {
-  state.paths.set(node, new ScriptPath(state.tree, node));
-  const key: "body" = "body";
-  for (const [index, child] of node[key].entries()) {
-    state.parents.set(child, {node, key, index});
-    statement(state, child);
-  }
-}
+// tslint:disable:cyclomatic-complexity
 
-function statement<L>(state: TreeState<L>, node: Statement<L>): void {
+/**
+ * Build the tree state starting from the provided node.
+ *
+ * @internal
+ */
+export function node<L>(state: TreeState<L>, node: Node<L>): void {
   switch (node.type) {
+    case "Script":
+      return script(state, node);
+    // Statements
     case "BlockStatement":
       return blockStatement(state, node);
     case "EmptyStatement":
@@ -155,9 +156,67 @@ function statement<L>(state: TreeState<L>, node: Statement<L>): void {
       return setVariable(state, node);
     case "ThrowStatement":
       return throwStatement(state, node);
+    // Expressions
+    case "AssignmentExpression":
+      return assignmentExpression(state, node);
+    case "BinaryExpression":
+      return binaryExpression(state, node);
+    case "BooleanLiteral":
+      return booleanLiteral(state, node);
+    case "CallExpression":
+      return callExpression(state, node);
+    case "ConditionalExpression":
+      return conditionalExpression(state, node);
+    case "Identifier":
+      return identifier(state, node);
+    case "LogicalExpression":
+      return logicalExpression(state, node);
+    case "MemberExpression":
+      return memberExpression(state, node);
+    case "NewExpression":
+      return newExpression(state, node);
+    case "NullLiteral":
+      return nullLiteral(state, node);
+    case "NumberLiteral":
+      return numberLiteral(state, node);
+    case "OpConstant":
+      return opConstant(state, node);
+    case "OpGlobal":
+      return opGlobal(state, node);
+    case "OpPop":
+      return opPop(state, node);
+    case "OpPropertyName":
+      return opPropertyName(state, node);
+    case "OpRegister":
+      return opRegister(state, node);
+    case "OpTemporary":
+      return opTemporary(state, node);
+    case "OpUndefined":
+      return opUndefined(state, node);
+    case "OpVariable":
+      return opVariable(state, node);
+    case "SequenceExpression":
+      return sequenceExpression(state, node);
+    case "StringLiteral":
+      return stringLiteral(state, node);
+    case "UnaryExpression":
+      return unaryExpression(state, node);
     default:
       throw new Error("Unexpected Node type");
   }
+}
+
+function script<L>(state: TreeState<L>, node: Script<L>): void {
+  state.paths.set(node, new ScriptPath(state.tree, node));
+  const key: "body" = "body";
+  for (const [index, child] of node[key].entries()) {
+    state.parents.set(child, {node, key, index});
+    statement(state, child);
+  }
+}
+
+function statement<L>(state: TreeState<L>, _node: Statement<L>): void {
+  return node(state, _node);
 }
 
 function blockStatement<L>(state: TreeState<L>, node: BlockStatement<L>): void {
@@ -211,14 +270,7 @@ function opConstantPool<L>(state: TreeState<L>, node: OpConstantPool<L>): void {
 function opDeclareVariable<L>(state: TreeState<L>, node: OpDeclareVariable<L>): void {
   state.paths.set(node, new OpDeclareVariablePath(state.tree, node));
   buildKey(state, node, "name", expression);
-  {
-    const key: "value" = "value";
-    const child: Expression<L> | null = node[key];
-    if (child !== null) {
-      state.parents.set(child, {node, key, index: 0});
-      expression(state, child);
-    }
-  }
+  buildNullableKey(state, node, "value", expression);
 }
 
 function opEnumerate<L>(state: TreeState<L>, node: OpEnumerate<L>): void {
@@ -228,27 +280,13 @@ function opEnumerate<L>(state: TreeState<L>, node: OpEnumerate<L>): void {
 
 function opInitArray<L>(state: TreeState<L>, node: OpInitArray<L>): void {
   state.paths.set(node, new OpInitArrayPath(state.tree, node));
-  {
-    const key: "target" = "target";
-    const child: OpTemporaryPattern<L> | null = node[key];
-    if (child !== null) {
-      state.parents.set(child, {node, key, index: 0});
-      opTemporaryPattern(state, child);
-    }
-  }
+  buildNullableKey(state, node, "target", opTemporaryPattern);
   buildKey(state, node, "itemCount", expression);
 }
 
 function opInitObject<L>(state: TreeState<L>, node: OpInitObject<L>): void {
   state.paths.set(node, new OpInitObjectPath(state.tree, node));
-  {
-    const key: "target" = "target";
-    const child: OpTemporaryPattern<L> | null = node[key];
-    if (child !== null) {
-      state.parents.set(child, {node, key, index: 0});
-      opTemporaryPattern(state, child);
-    }
-  }
+  buildNullableKey(state, node, "target", opTemporaryPattern);
   buildKey(state, node, "itemCount", expression);
 }
 
@@ -264,12 +302,7 @@ function opTrace<L>(state: TreeState<L>, node: OpTrace<L>): void {
 
 function returnStatement<L>(state: TreeState<L>, node: ReturnStatement<L>): void {
   state.paths.set(node, new ReturnStatementPath(state.tree, node));
-  const key: "value" = "value";
-  const child: Expression<L> | null = node[key];
-  if (child !== null) {
-    state.parents.set(child, {node, key, index: 0});
-    expression(state, child);
-  }
+  buildNullableKey(state, node, "value", expression);
 }
 
 function setVariable<L>(state: TreeState<L>, node: SetVariable<L>): void {
@@ -283,71 +316,14 @@ function throwStatement<L>(state: TreeState<L>, node: ThrowStatement<L>): void {
   buildKey(state, node, "value", expression);
 }
 
-function expression<L>(state: TreeState<L>, node: Expression<L>): void {
-  switch (node.type) {
-    case "AssignmentExpression":
-      return assignmentExpression(state, node);
-    case "BinaryExpression":
-      return binaryExpression(state, node);
-    case "BooleanLiteral":
-      return booleanLiteral(state, node);
-    case "CallExpression":
-      return callExpression(state, node);
-    case "ConditionalExpression":
-      return conditionalExpression(state, node);
-    case "Identifier":
-      return identifier(state, node);
-    case "LogicalExpression":
-      return logicalExpression(state, node);
-    case "MemberExpression":
-      return memberExpression(state, node);
-    case "NewExpression":
-      return newExpression(state, node);
-    case "NullLiteral":
-      return nullLiteral(state, node);
-    case "NumberLiteral":
-      return numberLiteral(state, node);
-    case "OpConstant":
-      return opConstant(state, node);
-    case "OpGlobal":
-      return opGlobal(state, node);
-    case "OpPop":
-      return opPop(state, node);
-    case "OpPropertyName":
-      return opPropertyName(state, node);
-    case "OpRegister":
-      return opRegister(state, node);
-    case "OpTemporary":
-      return opTemporary(state, node);
-    case "OpUndefined":
-      return opUndefined(state, node);
-    case "OpVariable":
-      return opVariable(state, node);
-    case "SequenceExpression":
-      return sequenceExpression(state, node);
-    case "StringLiteral":
-      return stringLiteral(state, node);
-    case "UnaryExpression":
-      return unaryExpression(state, node);
-    default:
-      throw new Error("Unexpected Node type");
-  }
+function expression<L>(state: TreeState<L>, _node: Expression<L>): void {
+  return node(state, _node);
 }
 
 function assignmentExpression<L>(state: TreeState<L>, node: AssignmentExpression<L>): void {
   state.paths.set(node, new AssignmentExpressionPath(state.tree, node));
-  {
-    const key: "target" = "target";
-    const child: Pattern<L> = node[key];
-    state.parents.set(child, {node, key, index: 0});
-    pattern(state, child);
-  }
-  {
-    const key: "value" = "value";
-    const child: Expression<L> = node[key];
-    state.parents.set(child, {node, key, index: 0});
-    expression(state, child);
-  }
+  buildKey(state, node, "target", pattern);
+  buildKey(state, node, "value", expression);
 }
 
 function binaryExpression<L>(state: TreeState<L>, node: BinaryExpression<L>): void {
@@ -362,7 +338,12 @@ function booleanLiteral<L>(state: TreeState<L>, node: BooleanLiteral<L>): void {
 
 function callExpression<L>(state: TreeState<L>, node: CallExpression<L>): void {
   state.paths.set(node, new CallExpressionPath(state.tree, node));
-  throw new Error("NotImplemented");
+  buildKey(state, node, "callee", expression);
+  const key: "arguments" = "arguments";
+  for (const [index, child] of node[key].entries()) {
+    state.parents.set(child, {node, key, index});
+    expression(state, child);
+  }
 }
 
 function conditionalExpression<L>(state: TreeState<L>, node: ConditionalExpression<L>): void {

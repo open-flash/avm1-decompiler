@@ -6,7 +6,7 @@ import { Script } from "../as2-types/script";
 import { Statement } from "../as2-types/statement";
 import { decompileAction, OpAs2Emitter, ScopeContext } from "./action";
 
-export function decompileCfg(cfg: Cfg): Script {
+export function decompileCfg(cfg: Cfg): Script<null> {
   if (cfg.blocks.length !== 1) {
     throw new Error("NotImplemented: Support for multiple blocks");
   }
@@ -15,7 +15,7 @@ export function decompileCfg(cfg: Cfg): Script {
     throw new Error("NotImplemented: Support for control flow actions");
   }
   const cx: ScopeContext = new ScopeContext();
-  const body: Statement[] = decompileActions(cx, block.actions);
+  const body: Statement<null>[] = decompileActions(cx, block.actions);
   return {type: "Script", loc: null, body};
 }
 

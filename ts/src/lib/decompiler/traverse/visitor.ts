@@ -120,14 +120,14 @@ export type TypedNodeVisitor<L, S> =
   ScriptVisitor<L, S> & StatementVisitor<L, S> & ExpressionVisitor<L, S> & PatternVisitor<L, S>;
 
 export interface ScriptVisitor<L, S> {
-  node: undefined;
+  node?: undefined;
   script?: VisitorObj<RoScript<L>, S>;
 }
 
 export type StatementVisitor<L, S> = AnyStatementVisitor<L, S> | TypedStatementVisitor<L, S>;
 
 export interface AnyStatementVisitor<L, S> {
-  node: undefined;
+  node?: undefined;
   statement?: VisitorObj<RoStatement<L>, S>;
   blockStatement?: undefined;
   emptyStatement?: undefined;
@@ -148,8 +148,8 @@ export interface AnyStatementVisitor<L, S> {
 }
 
 export interface TypedStatementVisitor<L, S> {
-  node: undefined;
-  statement: undefined;
+  node?: undefined;
+  statement?: undefined;
   blockStatement?: VisitorObj<RoBlockStatement<L>, S>;
   emptyStatement?: VisitorObj<RoEmptyStatement<L>, S>;
   expressionStatement?: VisitorObj<RoExpressionStatement<L>, S>;
@@ -198,8 +198,8 @@ export interface AnyExpressionVisitor<L, S> {
 }
 
 export interface TypedExpressionVisitor<L, S> {
-  node: undefined;
-  expression: undefined;
+  node?: undefined;
+  expression?: undefined;
   assignmentExpression?: VisitorObj<RoAssignmentExpression<L>, S>;
   binaryExpression?: VisitorObj<RoBinaryExpression<L>, S>;
   booleanLiteral?: VisitorObj<RoBooleanLiteral<L>, S>;
@@ -236,8 +236,8 @@ export interface AnyPatternVisitor<L, S> {
 }
 
 export interface TypedPatternVisitor<L, S> {
-  node: undefined;
-  pattern: undefined;
+  node?: undefined;
+  pattern?: undefined;
   identifierPattern?: VisitorObj<RoIdentifierPattern<L>, S>;
   memberPattern?: VisitorObj<RoMemberPattern<L>, S>;
   opRegisterPattern?: VisitorObj<RoOpRegisterPattern<L>, S>;
@@ -305,169 +305,142 @@ export interface SimpleVisitor<L, S> {
   opTemporaryPattern?: VisitorFn<RoOpTemporaryPattern<L>, S>;
 }
 
+const ALIASES: ReadonlyMap<string, readonly (keyof SimpleVisitor<any, any>)[]> = new Map([
+  [
+    "node",
+    [
+      "script",
+      // Statements
+      "blockStatement",
+      "emptyStatement",
+      "expressionStatement",
+      "ifFrameLoadedStatement",
+      "ifStatement",
+      "opCallFunction",
+      "opConstantPool",
+      "opDeclareVariable",
+      "opEnumerate",
+      "opInitArray",
+      "opInitObject",
+      "opPush",
+      "opTrace",
+      "returnStatement",
+      "setVariable",
+      "throwStatement",
+      // Expressions,
+      "assignmentExpression",
+      "binaryExpression",
+      "booleanLiteral",
+      "callExpression",
+      "conditionalExpression",
+      "identifier",
+      "logicalExpression",
+      "memberExpression",
+      "newExpression",
+      "nullLiteral",
+      "numberLiteral",
+      "opConstant",
+      "opGlobal",
+      "opPop",
+      "opPropertyName",
+      "opRegister",
+      "opTemporary",
+      "opUndefined",
+      "opVariable",
+      "sequenceExpression",
+      "stringLiteral",
+      "unaryExpression",
+      // Patterns
+      "identifierPattern",
+      "memberPattern",
+      "opRegisterPattern",
+      "opTemporaryPattern",
+    ],
+  ],
+  [
+    "statement",
+    [
+      "blockStatement",
+      "emptyStatement",
+      "expressionStatement",
+      "ifFrameLoadedStatement",
+      "ifStatement",
+      "opCallFunction",
+      "opConstantPool",
+      "opDeclareVariable",
+      "opEnumerate",
+      "opInitArray",
+      "opInitObject",
+      "opPush",
+      "opTrace",
+      "returnStatement",
+      "setVariable",
+      "throwStatement",
+    ],
+  ],
+  [
+    "expression",
+    [
+      "assignmentExpression",
+      "binaryExpression",
+      "booleanLiteral",
+      "callExpression",
+      "conditionalExpression",
+      "identifier",
+      "logicalExpression",
+      "memberExpression",
+      "newExpression",
+      "nullLiteral",
+      "numberLiteral",
+      "opConstant",
+      "opGlobal",
+      "opPop",
+      "opPropertyName",
+      "opRegister",
+      "opTemporary",
+      "opUndefined",
+      "opVariable",
+      "sequenceExpression",
+      "stringLiteral",
+      "unaryExpression",
+    ],
+  ],
+  [
+    "pattern",
+    [
+      "identifierPattern",
+      "memberPattern",
+      "opRegisterPattern",
+      "opTemporaryPattern",
+    ],
+  ],
+]);
+
 export function resolveVisitor<L, S>(visitor: Visitor<L, S>): ResolvedVisitor<L, S> {
+  // TODO: Check for conflicts when applying aliases
+  const noAliasVisitor: Visitor<L, S> = {};
+  for (const [key, value] of Object.entries(visitor)) {
+    const aliases: readonly (keyof SimpleVisitor<any, any>)[] | undefined = ALIASES.get(key);
+    if (aliases === undefined) {
+      Reflect.set(noAliasVisitor, key, value);
+    } else {
+      for (const aliasedKey of aliases) {
+        Reflect.set(noAliasVisitor, aliasedKey, value);
+      }
+    }
+  }
+
   const enter: SimpleVisitor<L, S> = {};
   const exit: SimpleVisitor<L, S> = {};
 
-  if (visitor.node !== undefined) {
-    const enterFn: VisitorFn<RoNode<L>, S> | undefined = visitor.node.enter;
+  for (const [key, value] of Object.entries(noAliasVisitor)) {
+    const enterFn: VisitorFn<RoNode<L>, S> | undefined = value.enter;
     if (enterFn !== undefined) {
-      enter.script = enterFn;
-      enter.blockStatement = enterFn;
-      enter.emptyStatement = enterFn;
-      enter.expressionStatement = enterFn;
-      enter.ifFrameLoadedStatement = enterFn;
-      enter.ifStatement = enterFn;
-      enter.opCallFunction = enterFn;
-      enter.opConstantPool = enterFn;
-      enter.opDeclareVariable = enterFn;
-      enter.opEnumerate = enterFn;
-      enter.opInitArray = enterFn;
-      enter.opInitObject = enterFn;
-      enter.opPush = enterFn;
-      enter.opTrace = enterFn;
-      enter.returnStatement = enterFn;
-      enter.setVariable = enterFn;
-      enter.throwStatement = enterFn;
+      Reflect.set(enter, key, enterFn);
     }
-    const exitFn: VisitorFn<RoNode<L>, S> | undefined = visitor.node.exit;
+    const exitFn: VisitorFn<RoNode<L>, S> | undefined = value.exit;
     if (exitFn !== undefined) {
-      exit.script = exitFn;
-      exit.blockStatement = exitFn;
-      exit.emptyStatement = exitFn;
-      exit.expressionStatement = exitFn;
-      exit.ifFrameLoadedStatement = exitFn;
-      exit.ifStatement = exitFn;
-      exit.opCallFunction = exitFn;
-      exit.opConstantPool = exitFn;
-      exit.opDeclareVariable = exitFn;
-      exit.opEnumerate = exitFn;
-      exit.opInitArray = exitFn;
-      exit.opInitObject = exitFn;
-      exit.opPush = exitFn;
-      exit.opTrace = exitFn;
-      exit.returnStatement = exitFn;
-      exit.setVariable = exitFn;
-      exit.throwStatement = exitFn;
-    }
-  } else {
-    if (visitor.script !== undefined) {
-      enter.script = visitor.script.enter;
-      exit.script = visitor.script.exit;
-    }
-    if (visitor.statement !== undefined) {
-      const enterFn: VisitorFn<RoStatement<L>, S> | undefined = visitor.statement.enter;
-      if (enterFn !== undefined) {
-        enter.blockStatement = enterFn;
-        enter.emptyStatement = enterFn;
-        enter.expressionStatement = enterFn;
-        enter.ifFrameLoadedStatement = enterFn;
-        enter.ifStatement = enterFn;
-        enter.opCallFunction = enterFn;
-        enter.opConstantPool = enterFn;
-        enter.opDeclareVariable = enterFn;
-        enter.opEnumerate = enterFn;
-        enter.opInitArray = enterFn;
-        enter.opInitObject = enterFn;
-        enter.opPush = enterFn;
-        enter.opTrace = enterFn;
-        enter.returnStatement = enterFn;
-        enter.setVariable = enterFn;
-        enter.throwStatement = enterFn;
-      }
-      const exitFn: VisitorFn<RoStatement<L>, S> | undefined = visitor.statement.exit;
-      if (exitFn !== undefined) {
-        exit.blockStatement = exitFn;
-        exit.emptyStatement = exitFn;
-        exit.expressionStatement = exitFn;
-        exit.ifFrameLoadedStatement = exitFn;
-        exit.ifStatement = exitFn;
-        exit.opCallFunction = exitFn;
-        exit.opConstantPool = exitFn;
-        exit.opDeclareVariable = exitFn;
-        exit.opEnumerate = exitFn;
-        exit.opInitArray = exitFn;
-        exit.opInitObject = exitFn;
-        exit.opPush = exitFn;
-        exit.opTrace = exitFn;
-        exit.returnStatement = exitFn;
-        exit.setVariable = exitFn;
-        exit.throwStatement = exitFn;
-      }
-    } else {
-      throw new Error("NotImplemented");
-    }
-    if (visitor.expression !== undefined) {
-      const enterFn: VisitorFn<RoExpression<L>, S> | undefined = visitor.expression.enter;
-      if (enterFn !== undefined) {
-        enter.assignmentExpression = enterFn;
-        enter.binaryExpression = enterFn;
-        enter.booleanLiteral = enterFn;
-        enter.callExpression = enterFn;
-        enter.conditionalExpression = enterFn;
-        enter.identifier = enterFn;
-        enter.logicalExpression = enterFn;
-        enter.memberExpression = enterFn;
-        enter.newExpression = enterFn;
-        enter.nullLiteral = enterFn;
-        enter.numberLiteral = enterFn;
-        enter.opConstant = enterFn;
-        enter.opGlobal = enterFn;
-        enter.opPop = enterFn;
-        enter.opPropertyName = enterFn;
-        enter.opRegister = enterFn;
-        enter.opTemporary = enterFn;
-        enter.opUndefined = enterFn;
-        enter.opVariable = enterFn;
-        enter.sequenceExpression = enterFn;
-        enter.stringLiteral = enterFn;
-        enter.unaryExpression = enterFn;
-      }
-      const exitFn: VisitorFn<RoExpression<L>, S> | undefined = visitor.expression.exit;
-      if (exitFn !== undefined) {
-        exit.assignmentExpression = exitFn;
-        exit.binaryExpression = exitFn;
-        exit.booleanLiteral = exitFn;
-        exit.callExpression = exitFn;
-        exit.conditionalExpression = exitFn;
-        exit.identifier = exitFn;
-        exit.logicalExpression = exitFn;
-        exit.memberExpression = exitFn;
-        exit.newExpression = exitFn;
-        exit.nullLiteral = exitFn;
-        exit.numberLiteral = exitFn;
-        exit.opConstant = exitFn;
-        exit.opGlobal = exitFn;
-        exit.opPop = exitFn;
-        exit.opPropertyName = exitFn;
-        exit.opRegister = exitFn;
-        exit.opTemporary = exitFn;
-        exit.opUndefined = exitFn;
-        exit.opVariable = exitFn;
-        exit.sequenceExpression = exitFn;
-        exit.stringLiteral = exitFn;
-        exit.unaryExpression = exitFn;
-      }
-    } else {
-      throw new Error("NotImplemented");
-    }
-    if (visitor.pattern !== undefined) {
-      const enterFn: VisitorFn<RoPattern<L>, S> | undefined = visitor.pattern.enter;
-      if (enterFn !== undefined) {
-        enter.identifierPattern = enterFn;
-        enter.memberPattern = enterFn;
-        enter.opRegisterPattern = enterFn;
-        enter.opTemporaryPattern = enterFn;
-      }
-      const exitFn: VisitorFn<RoPattern<L>, S> | undefined = visitor.pattern.exit;
-      if (exitFn !== undefined) {
-        exit.identifierPattern = exitFn;
-        exit.memberPattern = exitFn;
-        exit.opRegisterPattern = exitFn;
-        exit.opTemporaryPattern = exitFn;
-      }
-    } else {
-      throw new Error("NotImplemented");
+      Reflect.set(exit, key, exitFn);
     }
   }
 

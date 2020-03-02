@@ -4,6 +4,8 @@ import { Expression } from "../as2-types/expression";
 import { AssignmentExpression } from "../as2-types/expressions/assignment-expression";
 import { BinaryExpression } from "../as2-types/expressions/binary-expression";
 import { BooleanLiteral } from "../as2-types/expressions/boolean-literal";
+import { CallExpression } from "../as2-types/expressions/call-expression";
+import { Identifier } from "../as2-types/expressions/identifier";
 import { MemberExpression } from "../as2-types/expressions/member-expression";
 import { NumberLiteral } from "../as2-types/expressions/number-literal";
 import { StringLiteral } from "../as2-types/expressions/string-literal";
@@ -190,11 +192,11 @@ class As2Emitter {
       case "BooleanLiteral":
         return this.writeBooleanLiteral(expression);
       case "CallExpression":
-        throw new Error("NotImplemented");
+        return this.writeCallExpression(expression);
       case "ConditionalExpression":
         throw new Error("NotImplemented");
       case "Identifier":
-        throw new Error("NotImplemented");
+        return this.writeIdentifier(expression);
       case "LogicalExpression":
         throw new Error("NotImplemented");
       case "MemberExpression":
@@ -324,7 +326,29 @@ class As2Emitter {
     this.writeBoolean(expression.value);
   }
 
-  writeMemberExpression(expression: MemberExpression<unknown>): void {
+  writeCallExpression(expression: CallExpression<unknown>): void {
+    this.write("(");
+    this.writeExpression(expression.callee);
+    this.write(")(");
+    let first: boolean = true;
+    for (const arg of expression.arguments) {
+      if (first) {
+        first = false;
+      } else {
+        this.write(", ");
+      }
+      this.write("(");
+      this.writeExpression(arg);
+      this.write(")");
+    }
+    this.write(")");
+  }
+
+  writeIdentifier(expression: Identifier): void {
+    this.write(expression.name);
+  }
+
+  writeMemberExpression(expression: MemberExpression): void {
     this.write("(");
     this.writeExpression(expression.base);
     this.write(")[");

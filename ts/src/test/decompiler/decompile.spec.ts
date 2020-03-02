@@ -6,6 +6,7 @@ import sysPath from "path";
 import { emitScript } from "../../lib/as2-emitter/emitter";
 import { Script } from "../../lib/as2-types/script";
 import { decompileCfg } from "../../lib/decompiler/decompile";
+import { lowerBuiltins } from "../../lib/decompiler/transform/lower-builtins";
 import { Tree } from "../../lib/decompiler/traverse";
 import { Path } from "../../lib/decompiler/traverse/path";
 import { VisitorAction } from "../../lib/decompiler/traverse/visitor";
@@ -35,11 +36,12 @@ describe("avm1", function () {
       const inputJson: string = await readTextFile(sample.cfgPath);
       const inputCfg: Cfg = $Cfg.read(JSON_READER, inputJson);
 
-      const actualScript: Script = decompileCfg(inputCfg);
+      const actualScript: Script<null> = decompileCfg(inputCfg);
+
       const actualScriptJson: string = `${JSON.stringify(actualScript, null, 2)}\n`;
       await writeTextFile(sysPath.join(sample.root, "local-main.ts.json"), actualScriptJson);
 
-      const tree: Tree = new Tree(actualScript);
+      const tree: Tree<null> = new Tree(actualScript);
       const nodeCount: {count: number} = tree.traverse(
         {
           node: {
@@ -52,6 +54,8 @@ describe("avm1", function () {
         {count: 0},
       );
       chai.assert.isTrue(nodeCount.count > 0);
+
+      lowerBuiltins(tree.path(tree.root));
 
       const actualSource: string = emitScript(actualScript);
       await writeTextFile(sysPath.join(sample.root, "local-main.ts.opas2"), actualSource);

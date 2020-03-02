@@ -1,14 +1,20 @@
+import { Expression, RoExpression } from "../as2-types/expression";
 import { Node, RoNode } from "../as2-types/node";
 import { Script } from "../as2-types/script";
+import { RoStatement, Statement } from "../as2-types/statement";
 import { buildTreeState, TreeState } from "./traverse/build";
 import { getFirstChild } from "./traverse/first-child";
 import { getNextSibling } from "./traverse/next-sibling";
 import { Path } from "./traverse/path";
+import { replace } from "./traverse/replace";
 import { Traversal } from "./traverse/traversal";
 import { TraversalEvent } from "./traverse/traversal-event";
 import { NodeParent } from "./traverse/tree-state";
 import { ResolvedVisitor, resolveVisitor, Visitor, VisitorAction } from "./traverse/visitor";
 
+/**
+ * Represents a mutable AST with parent information.
+ */
 export class Tree<L = unknown> {
   readonly root: Script<L>;
   private readonly traversals: Traversal<L, unknown>[];
@@ -38,7 +44,7 @@ export class Tree<L = unknown> {
         traversal.event === TraversalEvent.Enter ? resolvedVisitor.enter : resolvedVisitor.exit,
         traversal.state,
       );
-      if (action === VisitorAction.Stop) {
+      if (action === VisitorAction.Stop || (traversal.node === node && traversal.event === TraversalEvent.Exit)) {
         done = true;
       } else {
         done = this.advance(traversal, action === VisitorAction.Skip);
@@ -48,17 +54,25 @@ export class Tree<L = unknown> {
     return traversal.state;
   }
 
-  public replaceWith(oldNode: RoNode<L>, newNode: Node<L>) {
-    console.log(oldNode);
-    console.log(newNode);
-    throw new Error("NotImplemented: Tree#replaceWith");
+  public replaceStatement(oldNode: RoStatement<L>, newNode: Statement<L>): void {
+    if (this.traversals.length > 0) {
+      throw new Error("Cannot replace statement while there are active traversals");
+    }
+    replace({tree: this, paths: this.paths, parents: this.parents, root: this.root}, oldNode, newNode);
+  }
+
+  public replaceExpression(oldNode: RoExpression<L>, newNode: Expression<L>): void {
+    if (this.traversals.length > 0) {
+      throw new Error("Cannot replace statement while there are active traversals");
+    }
+    replace({tree: this, paths: this.paths, parents: this.parents, root: this.root}, oldNode, newNode);
   }
 
   /**
    * Check if this tree contains the provided Node.
    */
   public contains(node: RoNode<L>): boolean {
-    return node === this.root || this.parents.has(node);
+    return this.paths.has(node);
   }
 
   // public path<N extends RoNode<L>>(node: N): Path<N>;
