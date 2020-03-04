@@ -38,8 +38,8 @@ import { UnaryOperator } from "../as2-types/unary-operator";
 export class ScopeContext {
   private nextTemporaryId: number;
 
-  public constructor() {
-    this.nextTemporaryId = 0;
+  public constructor(nextTemporaryId: number = 0) {
+    this.nextTemporaryId = nextTemporaryId;
   }
 
   /**

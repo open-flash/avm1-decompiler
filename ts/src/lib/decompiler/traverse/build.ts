@@ -24,7 +24,7 @@ import { OpUndefined } from "../../as2-types/op-expressions/op-undefined";
 import { OpVariable } from "../../as2-types/op-expressions/op-variable";
 import { OpRegisterPattern } from "../../as2-types/op-patterns/op-register-pattern";
 import { OpTemporaryPattern } from "../../as2-types/op-patterns/op-temporary-pattern";
-import { OpCallFunction } from "../../as2-types/op-statements/op-call-function";
+import { OpStackCall } from "../../as2-types/op-statements/op-stack-call";
 import { OpConstantPool } from "../../as2-types/op-statements/op-constant-pool";
 import { OpDeclareVariable } from "../../as2-types/op-statements/op-declare-variable";
 import { OpEnumerate } from "../../as2-types/op-statements/op-enumerate";
@@ -65,7 +65,7 @@ import {
   NewExpressionPath,
   NullLiteralPath,
   NumberLiteralPath,
-  OpCallFunctionPath,
+  OpStackCallPath,
   OpConstantPath,
   OpConstantPoolPath,
   OpDeclareVariablePath,
@@ -134,8 +134,6 @@ export function node<L>(state: TreeState<L>, node: Node<L>): void {
       return ifFrameLoadedStatement(state, node);
     case "IfStatement":
       return ifStatement(state, node);
-    case "OpCallFunction":
-      return opCallFunction(state, node);
     case "OpConstantPool":
       return opConstantPool(state, node);
     case "OpDeclareVariable":
@@ -148,6 +146,8 @@ export function node<L>(state: TreeState<L>, node: Node<L>): void {
       return opInitObject(state, node);
     case "OpPush":
       return opPush(state, node);
+    case "OpStackCall":
+      return opStackCall(state, node);
     case "OpTrace":
       return opTrace(state, node);
     case "ReturnStatement":
@@ -252,12 +252,6 @@ function ifStatement<L>(state: TreeState<L>, node: IfStatement<L>): void {
   buildNullableKey(state, node, "falsy", statement);
 }
 
-function opCallFunction<L>(state: TreeState<L>, node: OpCallFunction<L>): void {
-  state.paths.set(node, new OpCallFunctionPath(state.tree, node));
-  buildKey(state, node, "callee", expression);
-  buildKey(state, node, "argCount", expression);
-}
-
 function opConstantPool<L>(state: TreeState<L>, node: OpConstantPool<L>): void {
   state.paths.set(node, new OpConstantPoolPath(state.tree, node));
   const key: "pool" = "pool";
@@ -293,6 +287,12 @@ function opInitObject<L>(state: TreeState<L>, node: OpInitObject<L>): void {
 function opPush<L>(state: TreeState<L>, node: OpPush<L>): void {
   state.paths.set(node, new OpPushPath(state.tree, node));
   buildKey(state, node, "value", expression);
+}
+
+function opStackCall<L>(state: TreeState<L>, node: OpStackCall<L>): void {
+  state.paths.set(node, new OpStackCallPath(state.tree, node));
+  buildKey(state, node, "callee", expression);
+  buildKey(state, node, "argCount", expression);
 }
 
 function opTrace<L>(state: TreeState<L>, node: OpTrace<L>): void {

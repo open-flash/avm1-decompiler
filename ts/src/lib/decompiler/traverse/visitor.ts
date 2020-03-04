@@ -24,13 +24,13 @@ import { RoOpUndefined } from "../../as2-types/op-expressions/op-undefined";
 import { RoOpVariable } from "../../as2-types/op-expressions/op-variable";
 import { RoOpRegisterPattern } from "../../as2-types/op-patterns/op-register-pattern";
 import { RoOpTemporaryPattern } from "../../as2-types/op-patterns/op-temporary-pattern";
-import { RoOpCallFunction } from "../../as2-types/op-statements/op-call-function";
 import { RoOpConstantPool } from "../../as2-types/op-statements/op-constant-pool";
 import { RoOpDeclareVariable } from "../../as2-types/op-statements/op-declare-variable";
 import { RoOpEnumerate } from "../../as2-types/op-statements/op-enumerate";
 import { RoOpInitArray } from "../../as2-types/op-statements/op-init-array";
 import { RoOpInitObject } from "../../as2-types/op-statements/op-init-object";
 import { RoOpPush } from "../../as2-types/op-statements/op-push";
+import { RoOpStackCall } from "../../as2-types/op-statements/op-stack-call";
 import { RoOpTrace } from "../../as2-types/op-statements/op-trace";
 import { RoPattern } from "../../as2-types/pattern";
 import { RoIdentifierPattern } from "../../as2-types/patterns/identifier-pattern";
@@ -155,7 +155,7 @@ export interface TypedStatementVisitor<L, S> {
   expressionStatement?: VisitorObj<RoExpressionStatement<L>, S>;
   ifFrameLoadedStatement?: VisitorObj<RoIfFrameLoadedStatement<L>, S>;
   ifStatement?: VisitorObj<RoIfStatement<L>, S>;
-  opCallFunction?: VisitorObj<RoOpCallFunction<L>, S>;
+  opCallFunction?: VisitorObj<RoOpStackCall<L>, S>;
   opConstantPool?: VisitorObj<RoOpConstantPool<L>, S>;
   opDeclareVariable?: VisitorObj<RoOpDeclareVariable<L>, S>;
   opEnumerate?: VisitorObj<RoOpEnumerate<L>, S>;
@@ -264,13 +264,13 @@ export interface SimpleVisitor<L, S> {
   expressionStatement?: VisitorFn<RoExpressionStatement<L>, S>;
   ifFrameLoadedStatement?: VisitorFn<RoIfFrameLoadedStatement<L>, S>;
   ifStatement?: VisitorFn<RoIfStatement<L>, S>;
-  opCallFunction?: VisitorFn<RoOpCallFunction<L>, S>;
   opConstantPool?: VisitorFn<RoOpConstantPool<L>, S>;
   opDeclareVariable?: VisitorFn<RoOpDeclareVariable<L>, S>;
   opEnumerate?: VisitorFn<RoOpEnumerate<L>, S>;
   opInitArray?: VisitorFn<RoOpInitArray<L>, S>;
   opInitObject?: VisitorFn<RoOpInitObject<L>, S>;
   opPush?: VisitorFn<RoOpPush<L>, S>;
+  opStackCall?: VisitorFn<RoOpStackCall<L>, S>;
   opTrace?: VisitorFn<RoOpTrace<L>, S>;
   returnStatement?: VisitorFn<RoReturnStatement<L>, S>;
   setVariable?: VisitorFn<RoSetVariable<L>, S>;
@@ -316,13 +316,13 @@ const ALIASES: ReadonlyMap<string, readonly (keyof SimpleVisitor<any, any>)[]> =
       "expressionStatement",
       "ifFrameLoadedStatement",
       "ifStatement",
-      "opCallFunction",
       "opConstantPool",
       "opDeclareVariable",
       "opEnumerate",
       "opInitArray",
       "opInitObject",
       "opPush",
+      "opStackCall",
       "opTrace",
       "returnStatement",
       "setVariable",
@@ -365,13 +365,13 @@ const ALIASES: ReadonlyMap<string, readonly (keyof SimpleVisitor<any, any>)[]> =
       "expressionStatement",
       "ifFrameLoadedStatement",
       "ifStatement",
-      "opCallFunction",
       "opConstantPool",
       "opDeclareVariable",
       "opEnumerate",
       "opInitArray",
       "opInitObject",
       "opPush",
+      "opStackCall",
       "opTrace",
       "returnStatement",
       "setVariable",

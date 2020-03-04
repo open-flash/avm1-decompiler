@@ -24,13 +24,13 @@ import { RoOpUndefined } from "../../as2-types/op-expressions/op-undefined";
 import { RoOpVariable } from "../../as2-types/op-expressions/op-variable";
 import { RoOpRegisterPattern } from "../../as2-types/op-patterns/op-register-pattern";
 import { RoOpTemporaryPattern } from "../../as2-types/op-patterns/op-temporary-pattern";
-import { RoOpCallFunction } from "../../as2-types/op-statements/op-call-function";
 import { RoOpConstantPool } from "../../as2-types/op-statements/op-constant-pool";
 import { RoOpDeclareVariable } from "../../as2-types/op-statements/op-declare-variable";
 import { RoOpEnumerate } from "../../as2-types/op-statements/op-enumerate";
 import { RoOpInitArray } from "../../as2-types/op-statements/op-init-array";
 import { RoOpInitObject } from "../../as2-types/op-statements/op-init-object";
 import { RoOpPush } from "../../as2-types/op-statements/op-push";
+import { RoOpStackCall } from "../../as2-types/op-statements/op-stack-call";
 import { RoOpTrace } from "../../as2-types/op-statements/op-trace";
 import { RoIdentifierPattern } from "../../as2-types/patterns/identifier-pattern";
 import { RoMemberPattern } from "../../as2-types/patterns/member-pattern";
@@ -56,7 +56,7 @@ export type Path<N extends RoNode = RoNode> =
   N extends RoExpressionStatement ? ExpressionStatementPath<N> :
   N extends RoIfFrameLoadedStatement ? IfFrameLoadedStatementPath<N> :
   N extends RoIfStatement ? IfStatementPath<N> :
-  N extends RoOpCallFunction ? OpCallFunctionPath<N> :
+  N extends RoOpStackCall ? OpStackCallPath<N> :
   N extends RoOpConstantPool ? OpConstantPoolPath<N> :
   N extends RoOpDeclareVariable ? OpDeclareVariablePath<N> :
   N extends RoOpEnumerate ? OpEnumeratePath<N> :
@@ -98,13 +98,13 @@ export namespace Path {
       case "ExpressionStatement": return new ExpressionStatementPath(tree, node as any) as any;
       case "IfFrameLoadedStatement": return new IfFrameLoadedStatementPath(tree, node as any) as any;
       case "IfStatement": return new IfStatementPath(tree, node as any) as any;
-      case "OpCallFunction": return new OpCallFunctionPath(tree, node as any) as any;
       case "OpConstantPool": return new OpConstantPoolPath(tree, node as any) as any;
       case "OpDeclareVariable": return new OpDeclareVariablePath(tree, node as any) as any;
       case "OpEnumerate": return new OpEnumeratePath(tree, node as any) as any;
       case "OpInitArray": return new OpInitArrayPath(tree, node as any) as any;
       case "OpInitObject": return new OpInitObjectPath(tree, node as any) as any;
       case "OpPush": return new OpPushPath(tree, node as any) as any;
+      case "OpStackCall": return new OpStackCallPath(tree, node as any) as any;
       case "OpTrace": return new OpTracePath(tree, node as any) as any;
       case "AssignmentExpression": return new AssignmentExpressionPath(tree, node as any) as any;
       case "BinaryExpression": return new BinaryExpressionPath(tree, node as any) as any;
@@ -187,6 +187,7 @@ export class EmptyStatementPath<N extends RoEmptyStatement = RoEmptyStatement> e
   }
 }
 
+// tslint:disable-next-line:max-line-length
 export class ExpressionStatementPath<N extends RoExpressionStatement = RoExpressionStatement> extends AbstractStatementPath<N> {
   visit<S>(visitor: SimpleVisitor<N["loc"], S>, state: S): VisitorAction | undefined {
     return visitor.expressionStatement?.(this, state);
@@ -206,18 +207,13 @@ export class IfStatementPath<N extends RoIfStatement = RoIfStatement> extends Ab
   }
 }
 
-export class OpCallFunctionPath<N extends RoOpCallFunction = RoOpCallFunction> extends AbstractStatementPath<N> {
-  visit<S>(visitor: SimpleVisitor<N["loc"], S>, state: S): VisitorAction | undefined {
-    return visitor.opCallFunction?.(this, state);
-  }
-}
-
 export class OpConstantPoolPath<N extends RoOpConstantPool = RoOpConstantPool> extends AbstractStatementPath<N> {
   visit<S>(visitor: SimpleVisitor<N["loc"], S>, state: S): VisitorAction | undefined {
     return visitor.opConstantPool?.(this, state);
   }
 }
 
+// tslint:disable-next-line:max-line-length
 export class OpDeclareVariablePath<N extends RoOpDeclareVariable = RoOpDeclareVariable> extends AbstractStatementPath<N> {
   visit<S>(visitor: SimpleVisitor<N["loc"], S>, state: S): VisitorAction | undefined {
     return visitor.opDeclareVariable?.(this, state);
@@ -245,6 +241,12 @@ export class OpInitObjectPath<N extends RoOpInitObject = RoOpInitObject> extends
 export class OpPushPath<N extends RoOpPush = RoOpPush> extends AbstractStatementPath<N> {
   visit<S>(visitor: SimpleVisitor<N["loc"], S>, state: S): VisitorAction | undefined {
     return visitor.opPush?.(this, state);
+  }
+}
+
+export class OpStackCallPath<N extends RoOpStackCall = RoOpStackCall> extends AbstractStatementPath<N> {
+  visit<S>(visitor: SimpleVisitor<N["loc"], S>, state: S): VisitorAction | undefined {
+    return visitor.opStackCall?.(this, state);
   }
 }
 

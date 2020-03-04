@@ -23,8 +23,6 @@ export function replace<L = unknown>(tree: TreeState<L>, oldNode: RoNode<L>, new
     new Set(),
   );
 
-  console.log(oldSubTree.size);
-
   for (const oldSubTreeNode of oldSubTree) {
     tree.parents.delete(oldSubTreeNode);
     tree.paths.delete(oldSubTreeNode);

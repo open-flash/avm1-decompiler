@@ -59,7 +59,7 @@
 //
 // function isExpressionUsingStack(expression: Expression<unknown>): boolean {
 //   switch (expression.type) {
-//     case "OpCallFunction":
+//     case "OpStackCall":
 //     case "OpInitArray":
 //     case "OpInitObject":
 //     case "OpPop":

@@ -17,8 +17,6 @@ export function getFirstChild<L>(node: RoNode<L>): RoNode<L> | undefined {
       return node.scene !== null ? node.scene : node.frame;
     case "IfStatement":
       return node.test;
-    case "OpCallFunction":
-      return node.callee;
     case "OpConstantPool":
       return node.pool.length > 0 ? node.pool[0] : undefined;
     case "OpDeclareVariable":
@@ -31,6 +29,8 @@ export function getFirstChild<L>(node: RoNode<L>): RoNode<L> | undefined {
       return node.target !== null ? node.target : node.itemCount;
     case "OpPush":
       return node.value;
+    case "OpStackCall":
+      return node.callee;
     case "OpTrace":
       return node.value;
     case "ReturnStatement":

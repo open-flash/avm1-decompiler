@@ -22,7 +22,7 @@ import { OpTemporary, RoOpTemporary } from "../../as2-types/op-expressions/op-te
 import { OpUndefined, RoOpUndefined } from "../../as2-types/op-expressions/op-undefined";
 import { OpVariable, RoOpVariable } from "../../as2-types/op-expressions/op-variable";
 import { OpRegisterPattern, RoOpRegisterPattern } from "../../as2-types/op-patterns/op-register-pattern";
-import { OpCallFunction, RoOpCallFunction } from "../../as2-types/op-statements/op-call-function";
+import { OpStackCall, RoOpStackCall } from "../../as2-types/op-statements/op-stack-call";
 import { OpConstantPool, RoOpConstantPool } from "../../as2-types/op-statements/op-constant-pool";
 import { OpDeclareVariable, RoOpDeclareVariable } from "../../as2-types/op-statements/op-declare-variable";
 import { OpEnumerate, RoOpEnumerate } from "../../as2-types/op-statements/op-enumerate";
@@ -207,8 +207,8 @@ function ifStatement<N extends RoIfStatement>(parent: NodeParent<N>): RoNode<N["
   }
 }
 
-function opCallFunction<N extends OpCallFunction>(parent: NodeParent<N>): Node<N["loc"]> | undefined;
-function opCallFunction<N extends RoOpCallFunction>(parent: NodeParent<N>): RoNode<N["loc"]> | undefined {
+function opCallFunction<N extends OpStackCall>(parent: NodeParent<N>): Node<N["loc"]> | undefined;
+function opCallFunction<N extends RoOpStackCall>(parent: NodeParent<N>): RoNode<N["loc"]> | undefined {
   switch (parent.key) {
     case "target":
       return parent.node.callee;

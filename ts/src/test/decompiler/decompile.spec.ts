@@ -12,6 +12,7 @@ import { Path } from "../../lib/decompiler/traverse/path";
 import { VisitorAction } from "../../lib/decompiler/traverse/visitor";
 import meta from "./meta.js";
 import { readTextFile, writeTextFile } from "./utils";
+import { eliminatePushPop } from "../../lib/decompiler/transform/push-pop-elimination";
 
 const PROJECT_ROOT: string = sysPath.join(meta.dirname, "..", "..", "..", "..");
 console.log(PROJECT_ROOT);
@@ -56,6 +57,7 @@ describe("avm1", function () {
       chai.assert.isTrue(nodeCount.count > 0);
 
       lowerBuiltins(tree.path(tree.root));
+      eliminatePushPop(tree);
 
       const actualSource: string = emitScript(actualScript);
       await writeTextFile(sysPath.join(sample.root, "local-main.ts.opas2"), actualSource);

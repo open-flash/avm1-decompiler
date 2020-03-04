@@ -1,11 +1,14 @@
 import { Expression, RoExpression } from "../as2-types/expression";
 import { Node, RoNode } from "../as2-types/node";
-import { Script } from "../as2-types/script";
+import { OpTemporary } from "../as2-types/op-expressions/op-temporary";
+import { OpTemporaryPattern } from "../as2-types/op-patterns/op-temporary-pattern";
+import { RoScript, Script } from "../as2-types/script";
 import { RoStatement, Statement } from "../as2-types/statement";
+import { ScopeContext } from "./action";
 import { buildTreeState, TreeState } from "./traverse/build";
 import { getFirstChild } from "./traverse/first-child";
 import { getNextSibling } from "./traverse/next-sibling";
-import { Path } from "./traverse/path";
+import { OpTemporaryPath, OpTemporaryPatternPath, Path, ScriptPath } from "./traverse/path";
 import { replace } from "./traverse/replace";
 import { Traversal } from "./traverse/traversal";
 import { TraversalEvent } from "./traverse/traversal-event";
@@ -20,6 +23,7 @@ export class Tree<L = unknown> {
   private readonly traversals: Traversal<L, unknown>[];
   private readonly parents: WeakMap<RoNode<L>, NodeParent<Node<L>>>;
   private readonly paths: WeakMap<RoNode<L>, Path<RoNode<L>>>;
+  private readonly scopes: WeakMap<RoNode<L>, ScopeContext>;
 
   constructor(root: Script<L>) {
     const state: TreeState<L> = buildTreeState(this, root);
@@ -27,6 +31,7 @@ export class Tree<L = unknown> {
     this.traversals = [];
     this.parents = state.parents;
     this.paths = state.paths;
+    this.scopes = new WeakMap();
   }
 
   public traverse<S>(visitor: Visitor<L, S>, state: S): S {
@@ -95,6 +100,63 @@ export class Tree<L = unknown> {
     return parent;
   }
 
+  public scope(node: RoNode<L>): ScopeContext {
+    if (!this.contains(node)) {
+      throw new Error("AssertionError: input node is not in this tree");
+    }
+    while (true) {
+      if (isScopeNode(node)) {
+        break;
+      }
+      const parent: NodeParent<Node<L>> | null = this.parent(node);
+      if (parent === null) {
+        break;
+      }
+      node = parent.node;
+    }
+    return this.getScope(node);
+  }
+
+  /**
+   * Retrieves scope information for the provided node.
+   * `node` must be a scope node (script or function) or the tree root.
+   */
+  private getScope(node: RoNode<L>): ScopeContext {
+    let scope: ScopeContext | undefined = this.scopes.get(node);
+    if (scope === undefined) {
+      interface State {
+        maxTemp: number;
+      }
+
+      const state: State = this.traverseFrom(
+        node,
+        {
+          opTemporary: {
+            enter(path: OpTemporaryPath<OpTemporary<L>>, state: State): VisitorAction {
+              state.maxTemp = Math.max(state.maxTemp, path.node().id);
+              return VisitorAction.Advance;
+            },
+          },
+          opTemporaryPattern: {
+            enter(path: OpTemporaryPatternPath<OpTemporaryPattern<L>>, state: State): VisitorAction {
+              state.maxTemp = Math.max(state.maxTemp, path.node().id);
+              return VisitorAction.Advance;
+            },
+          },
+          script: {
+            enter(path: ScriptPath<RoScript<L>>): VisitorAction {
+              return node === path.node() ? VisitorAction.Advance : VisitorAction.Skip;
+            },
+          },
+        },
+        {maxTemp: -Infinity},
+      );
+
+      scope = new ScopeContext(state.maxTemp >= 0 ? state.maxTemp + 1 : 0);
+    }
+    return scope;
+  }
+
   private advance<S>(traversal: Traversal<L, S>, skipChildren: boolean): boolean {
     if (traversal.event === TraversalEvent.Enter) {
       // We just entered a new node: the next node will be our first child
@@ -128,4 +190,8 @@ export class Tree<L = unknown> {
     }
     return false;
   }
+}
+
+function isScopeNode<L>(node: RoNode<L>): node is Script<L> {
+  return node.type === "Script";
 }
