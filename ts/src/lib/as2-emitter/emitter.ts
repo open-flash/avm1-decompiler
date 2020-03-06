@@ -1,40 +1,47 @@
 import { AssignmentOperator } from "../as2-types/assignment-operator";
 import { BinaryOperator } from "../as2-types/binary-operator";
-import { Expression } from "../as2-types/expression";
-import { AssignmentExpression } from "../as2-types/expressions/assignment-expression";
-import { BinaryExpression } from "../as2-types/expressions/binary-expression";
-import { BooleanLiteral } from "../as2-types/expressions/boolean-literal";
-import { CallExpression } from "../as2-types/expressions/call-expression";
-import { Identifier } from "../as2-types/expressions/identifier";
-import { MemberExpression } from "../as2-types/expressions/member-expression";
-import { NumberLiteral } from "../as2-types/expressions/number-literal";
-import { StringLiteral } from "../as2-types/expressions/string-literal";
-import { UnaryExpression } from "../as2-types/expressions/unary-expression";
-import { OpConstant } from "../as2-types/op-expressions/op-constant";
-import { OpPropertyName } from "../as2-types/op-expressions/op-property-name";
-import { OpRegister } from "../as2-types/op-expressions/op-register";
-import { OpTemporary } from "../as2-types/op-expressions/op-temporary";
-import { OpVariable } from "../as2-types/op-expressions/op-variable";
+import { RoExpression } from "../as2-types/expression";
+import { RoAssignmentExpression } from "../as2-types/expressions/assignment-expression";
+import { RoBinaryExpression } from "../as2-types/expressions/binary-expression";
+import { RoBooleanLiteral } from "../as2-types/expressions/boolean-literal";
+import { RoCallExpression } from "../as2-types/expressions/call-expression";
+import { RoIdentifier } from "../as2-types/expressions/identifier";
+import { RoMemberExpression } from "../as2-types/expressions/member-expression";
+import { RoNumberLiteral } from "../as2-types/expressions/number-literal";
+import { RoStringLiteral } from "../as2-types/expressions/string-literal";
+import { RoUnaryExpression } from "../as2-types/expressions/unary-expression";
+import { RoOpConstant } from "../as2-types/op-expressions/op-constant";
+import { RoOpPropertyName } from "../as2-types/op-expressions/op-property-name";
+import { RoOpRegister } from "../as2-types/op-expressions/op-register";
+import { RoOpTemporary } from "../as2-types/op-expressions/op-temporary";
+import { RoOpVariable } from "../as2-types/op-expressions/op-variable";
 import { OpRegisterPattern } from "../as2-types/op-patterns/op-register-pattern";
 import { OpTemporaryPattern } from "../as2-types/op-patterns/op-temporary-pattern";
-import { OpConstantPool } from "../as2-types/op-statements/op-constant-pool";
-import { OpDeclareVariable } from "../as2-types/op-statements/op-declare-variable";
-import { OpInitArray } from "../as2-types/op-statements/op-init-array";
-import { OpInitObject } from "../as2-types/op-statements/op-init-object";
-import { OpPush } from "../as2-types/op-statements/op-push";
-import { OpTrace } from "../as2-types/op-statements/op-trace";
-import { Pattern } from "../as2-types/pattern";
-import { MemberPattern } from "../as2-types/patterns/member-pattern";
-import { Script } from "../as2-types/script";
-import { Statement } from "../as2-types/statement";
-import { ExpressionStatement } from "../as2-types/statements/expression-statement";
-import { SetVariable } from "../as2-types/statements/set-variable";
+import { RoOpConstantPool } from "../as2-types/op-statements/op-constant-pool";
+import { RoOpDeclareVariable } from "../as2-types/op-statements/op-declare-variable";
+import { RoOpInitArray } from "../as2-types/op-statements/op-init-array";
+import { RoOpInitObject } from "../as2-types/op-statements/op-init-object";
+import { RoOpPush } from "../as2-types/op-statements/op-push";
+import { RoOpTrace } from "../as2-types/op-statements/op-trace";
+import { RoPattern } from "../as2-types/pattern";
+import { RoMemberPattern } from "../as2-types/patterns/member-pattern";
+import { RoScript } from "../as2-types/script";
+import { RoStatement } from "../as2-types/statement";
+import { RoExpressionStatement } from "../as2-types/statements/expression-statement";
+import { RoSetVariable } from "../as2-types/statements/set-variable";
 import { UnaryOperator } from "../as2-types/unary-operator";
 
-export function emitScript(script: Script<unknown>): string {
+export function emitScript(script: RoScript): string {
   const chunks: string[] = [];
   const emitter: As2Emitter = new As2Emitter(chunks);
   emitter.writeScript(script);
+  return chunks.join("");
+}
+
+export function emitExpression(expr: RoExpression): string {
+  const chunks: string[] = [];
+  const emitter: As2Emitter = new As2Emitter(chunks);
+  emitter.writeExpression(expr);
   return chunks.join("");
 }
 
@@ -56,13 +63,13 @@ class As2Emitter {
     this.quotes = quotes;
   }
 
-  writeScript(script: Script<unknown>): void {
+  writeScript(script: RoScript): void {
     for (const statement of script.body) {
       this.writeStatement(statement);
     }
   }
 
-  writeStatement(statement: Statement<unknown>): void {
+  writeStatement(statement: RoStatement): void {
     switch (statement.type) {
       case "BlockStatement":
         throw new Error("NotImplemented");
@@ -104,13 +111,13 @@ class As2Emitter {
     this.endStatement();
   }
 
-  writeExpressionStatement(statement: ExpressionStatement<unknown>): void {
+  writeExpressionStatement(statement: RoExpressionStatement): void {
     this.writeExpression(statement.expression);
     this.write(";");
     this.endStatement();
   }
 
-  writeOpConstantPool(statement: OpConstantPool<unknown>): void {
+  writeOpConstantPool(statement: RoOpConstantPool): void {
     this.write("@constantPool(\n");
     this.indent();
     let first: boolean = true;
@@ -130,7 +137,7 @@ class As2Emitter {
     this.endStatement();
   }
 
-  writeOpDeclareVariable(statement: OpDeclareVariable<unknown>): void {
+  writeOpDeclareVariable(statement: RoOpDeclareVariable): void {
     this.write("@declareVar(");
     this.writeExpression(statement.name);
     if (statement.value !== null) {
@@ -141,7 +148,7 @@ class As2Emitter {
     this.endStatement();
   }
 
-  writeOpInitArray(statement: OpInitArray<unknown>): void {
+  writeOpInitArray(statement: RoOpInitArray): void {
     if (statement.target !== null) {
       this.writeOpTemporaryPattern(statement.target);
       this.write(" = ");
@@ -151,7 +158,7 @@ class As2Emitter {
     this.write(")");
   }
 
-  writeOpInitObject(statement: OpInitObject<unknown>): void {
+  writeOpInitObject(statement: RoOpInitObject): void {
     if (statement.target !== null) {
       this.writeOpTemporaryPattern(statement.target);
       this.write(" = ");
@@ -161,14 +168,14 @@ class As2Emitter {
     this.write(")");
   }
 
-  writeOpPush(statement: OpPush<unknown>): void {
+  writeOpPush(statement: RoOpPush): void {
     this.write("@push(");
     this.writeExpression(statement.value);
     this.write(");");
     this.endStatement();
   }
 
-  writeSetVariable(expression: SetVariable<unknown>): void {
+  writeSetVariable(expression: RoSetVariable): void {
     this.write("set(");
     this.writeExpression(expression.name);
     this.write(", ");
@@ -176,14 +183,14 @@ class As2Emitter {
     this.write(")");
   }
 
-  writeOpTrace(statement: OpTrace<unknown>): void {
+  writeOpTrace(statement: RoOpTrace): void {
     this.write("@trace(");
     this.writeExpression(statement.value);
     this.write(");");
     this.endStatement();
   }
 
-  writeExpression(expression: Expression<unknown>): void {
+  writeExpression(expression: RoExpression): void {
     switch (expression.type) {
       case "AssignmentExpression":
         return this.writeAssignmentExpression(expression);
@@ -234,7 +241,7 @@ class As2Emitter {
     }
   }
 
-  writeAssignmentExpression(expression: AssignmentExpression<unknown>): void {
+  writeAssignmentExpression(expression: RoAssignmentExpression): void {
     this.writePattern(expression.target);
     this.write(" ");
     switch (expression.operator) {
@@ -245,14 +252,13 @@ class As2Emitter {
         this.write("=");
         break;
       default:
-          throw new Error("AssertionError: Unexpected AssignmentOperator type");
+        throw new Error("AssertionError: Unexpected AssignmentOperator type");
     }
-    this.write(" (");
-    this.writeExpression(expression.value);
-    this.write(")");
+    this.write(" ");
+    this.innerWriteExpression(expression.value, expression.value.type === "SequenceExpression");
   }
 
-  writeBinaryExpression(expression: BinaryExpression<unknown>): void {
+  writeBinaryExpression(expression: RoBinaryExpression): void {
     this.write("(");
     this.writeExpression(expression.left);
     this.write(") ");
@@ -322,33 +328,22 @@ class As2Emitter {
     this.write(")");
   }
 
-  writeBooleanLiteral(expression: BooleanLiteral<unknown>): void {
+  writeBooleanLiteral(expression: RoBooleanLiteral): void {
     this.writeBoolean(expression.value);
   }
 
-  writeCallExpression(expression: CallExpression<unknown>): void {
+  writeCallExpression(expression: RoCallExpression): void {
     this.write("(");
     this.writeExpression(expression.callee);
-    this.write(")(");
-    let first: boolean = true;
-    for (const arg of expression.arguments) {
-      if (first) {
-        first = false;
-      } else {
-        this.write(", ");
-      }
-      this.write("(");
-      this.writeExpression(arg);
-      this.write(")");
-    }
     this.write(")");
+    this.writeArguments(expression.arguments);
   }
 
-  writeIdentifier(expression: Identifier): void {
+  writeIdentifier(expression: RoIdentifier): void {
     this.write(expression.name);
   }
 
-  writeMemberExpression(expression: MemberExpression): void {
+  writeMemberExpression(expression: RoMemberExpression): void {
     this.write("(");
     this.writeExpression(expression.base);
     this.write(")[");
@@ -360,11 +355,11 @@ class As2Emitter {
     this.write("null");
   }
 
-  writeNumberLiteral(expression: NumberLiteral<unknown>): void {
+  writeNumberLiteral(expression: RoNumberLiteral): void {
     this.writeNumber(expression.value);
   }
 
-  writeOpConstant(expression: OpConstant<unknown>): void {
+  writeOpConstant(expression: RoOpConstant): void {
     this.write(`@c${expression.id}`);
   }
 
@@ -376,17 +371,17 @@ class As2Emitter {
     this.write("@pop()");
   }
 
-  writeOpPropertyName(expression: OpPropertyName<unknown>): void {
+  writeOpPropertyName(expression: RoOpPropertyName<unknown>): void {
     this.write("@propertyName(");
     this.writeExpression(expression.index);
     this.write(")");
   }
 
-  writeOpRegister(expression: OpRegister<unknown>): void {
+  writeOpRegister(expression: RoOpRegister): void {
     this.write(`@r${expression.id}`);
   }
 
-  writeOpTemporary(expression: OpTemporary<unknown>): void {
+  writeOpTemporary(expression: RoOpTemporary): void {
     this.write(`@t${expression.id}`);
   }
 
@@ -394,17 +389,16 @@ class As2Emitter {
     this.write("@undefined");
   }
 
-  writeOpVariable(expression: OpVariable<unknown>): void {
-    this.write("@var(");
-    this.writeExpression(expression.name);
-    this.write(")");
+  writeOpVariable(expression: RoOpVariable): void {
+    this.write("@var");
+    this.writeArguments([expression.name]);
   }
 
-  writeStringLiteral(expression: StringLiteral<unknown>): void {
+  writeStringLiteral(expression: RoStringLiteral): void {
     this.writeString(expression.value);
   }
 
-  writeUnaryExpression(expression: UnaryExpression<unknown>): void {
+  writeUnaryExpression(expression: RoUnaryExpression): void {
     switch (expression.operator) {
       case UnaryOperator.BitNot:
         this.write("~");
@@ -429,7 +423,7 @@ class As2Emitter {
     this.write(")");
   }
 
-  writePattern(pattern: Pattern<unknown>): void {
+  writePattern(pattern: RoPattern): void {
     switch (pattern.type) {
       case "IdentifierPattern":
         throw new Error("NotImplemented");
@@ -444,7 +438,7 @@ class As2Emitter {
     }
   }
 
-  writeMemberPattern(expression: MemberPattern<unknown>): void {
+  writeMemberPattern(expression: RoMemberPattern): void {
     this.write(" (");
     this.writeExpression(expression.base);
     this.write(")[");
@@ -452,12 +446,37 @@ class As2Emitter {
     this.write("]");
   }
 
-  writeOpRegisterPattern(pattern: OpRegisterPattern<unknown>): void {
+  writeOpRegisterPattern(pattern: OpRegisterPattern): void {
     this.write(`@r${pattern.id}`);
   }
 
-  writeOpTemporaryPattern(pattern: OpTemporaryPattern<unknown>): void {
+  writeOpTemporaryPattern(pattern: OpTemporaryPattern): void {
     this.write(`@t${pattern.id}`);
+  }
+
+  private writeArguments(args: Iterable<RoExpression>): void {
+    this.write("(");
+    let first: boolean = true;
+    for (const arg of args) {
+      if (first) {
+        first = false;
+      } else {
+        this.write(", ");
+      }
+      const needsParens: boolean = arg.type === "SequenceExpression";
+      this.innerWriteExpression(arg, needsParens);
+    }
+    this.write(")");
+  }
+
+  private innerWriteExpression(expr: RoExpression, inParens: boolean): void {
+    if (inParens) {
+      this.write("(");
+    }
+    this.writeExpression(expr);
+    if (inParens) {
+      this.write(")");
+    }
   }
 
   private writeBoolean(value: boolean): void {

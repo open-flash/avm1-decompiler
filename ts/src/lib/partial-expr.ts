@@ -1,14 +1,14 @@
-import { AssignmentExpression } from "./as2-tree/assignment-expression";
-import { BinaryExpression } from "./as2-tree/binary-expression";
-import { BooleanLiteral } from "./as2-tree/boolean-literal";
-import { CallExpression } from "./as2-tree/call-expression";
-import { Expression } from "./as2-tree/expression";
-import { Identifier } from "./as2-tree/identifier";
-import { MemberExpression } from "./as2-tree/member-expression";
-import { Constant } from "./as2-tree/partial/constant";
-import { Input, makeInput } from "./as2-tree/partial/input";
-import { StringLiteral } from "./as2-tree/string-literal";
-import { UnaryExpression } from "./as2-tree/unary-expression";
+import { Expression } from "./as2-types/expression";
+import { AssignmentExpression } from "./as2-types/expressions/assignment-expression";
+import { BinaryExpression } from "./as2-types/expressions/binary-expression";
+import { BooleanLiteral } from "./as2-types/expressions/boolean-literal";
+import { CallExpression } from "./as2-types/expressions/call-expression";
+import { Identifier } from "./as2-types/expressions/identifier";
+import { MemberExpression } from "./as2-types/expressions/member-expression";
+import { StringLiteral } from "./as2-types/expressions/string-literal";
+import { UnaryExpression } from "./as2-types/expressions/unary-expression";
+import { OpConstant } from "./as2-types/op-expressions/op-constant";
+import { OpTemporary } from "./as2-types/op-expressions/op-temporary";
 
 export interface PartialExpr {
   inputs: number;
@@ -49,26 +49,26 @@ interface EvalOptions {
   readonly value: ValueExpression;
 }
 
-type ValueExpression = BooleanLiteral | Constant | Identifier | StringLiteral;
+type ValueExpression = BooleanLiteral | OpConstant | Identifier | StringLiteral;
 
 function evalExpression(expression: Expression, options: EvalOptions): Expression {
   switch (expression.type) {
-    case "_constant":
-    case "boolean-literal":
-    case "identifier":
-    case "string-literal":
+    case "OpConstant":
+    case "BooleanLiteral":
+    case "Identifier":
+    case "StringLiteral":
       return expression;
-    case "_input":
+    case "OpTemporary":
       return evalInput(expression, options);
-    case "assignment":
+    case "AssignmentExpression":
       return evalAssignmentExpression(expression, options);
-    case "binary":
+    case "BinaryExpression":
       return evalBinaryExpression(expression, options);
-    case "call-expression":
+    case "CallExpression":
       return evalCallExpression(expression, options);
-    case "member":
+    case "MemberExpression":
       return evalMemberExpression(expression, options);
-    case "unary-expression":
+    case "UnaryExpression":
       return evalUnaryExpression(expression, options);
     default:
       throw new Error(`Unknown \`Expression#type\` value: ${JSON.stringify(expression.type)}`);
@@ -107,21 +107,21 @@ function evalCallExpression(expression: CallExpression, options: EvalOptions): C
   return {...expression, callee, arguments: args};
 }
 
-function evalInput(expression: Input, options: EvalOptions): Input | ValueExpression {
+function evalInput(expression: OpTemporary, options: EvalOptions): OpTemporary | ValueExpression {
   if (expression.id === options.id) {
     return options.value;
   } else {
-    return makeInput(expression.id + options.shift);
+    return {type: "OpTemporary", loc: null, id: expression.id + options.shift};
   }
 }
 
 function evalMemberExpression(expression: MemberExpression, options: EvalOptions): MemberExpression {
-  const object: Expression = evalExpression(expression.object, options);
-  const property: Expression = evalExpression(expression.property, options);
-  if (object === expression.object || property === expression.property) {
+  const object: Expression = evalExpression(expression.base, options);
+  const property: Expression = evalExpression(expression.key, options);
+  if (object === expression.base || property === expression.key) {
     return expression;
   }
-  return {...expression, object, property};
+  return {...expression, base: object, key: property};
 }
 
 function evalUnaryExpression(expression: UnaryExpression, options: EvalOptions): UnaryExpression {

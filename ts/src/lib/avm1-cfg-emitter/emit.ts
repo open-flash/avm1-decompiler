@@ -1,5 +1,5 @@
 import cp from "child_process";
-import { emitExpression } from "../as2-emitter/expression";
+import { emitExpression } from "../as2-emitter/emitter";
 import { emitAction } from "../avm1-asm-emitter/action";
 import { Cfg } from "../cfg/cfg";
 import { ConditionalEdge, Edge, EdgeType, SubCfgEdge } from "../cfg/edge";

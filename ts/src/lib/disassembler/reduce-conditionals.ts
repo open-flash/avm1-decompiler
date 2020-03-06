@@ -2,7 +2,6 @@ import { buildLinear } from "../cfg/builder";
 import { Cfg } from "../cfg/cfg";
 import { ConditionalEdge, Edge, EdgeType } from "../cfg/edge";
 import { IfNode, Node, NodeType, SimpleNode } from "../cfg/node";
-import { makeInput } from "../as2-tree/partial/input";
 
 export function reduceConditionals(cfg: Cfg): boolean {
   const conditionals: ReadonlyArray<Conditional> = [...findConditionals(cfg)];
@@ -123,7 +122,7 @@ function toConditionalEdge(ifFalseChain: ReadonlyArray<Edge>, ifTrueChain: Reado
     type: EdgeType.Conditional,
     test: {
       inputs: 1,
-      expr: makeInput(0),
+      expr: {type: "OpTemporary", loc: null, id: 0},
       void: true,
       type: null, // Boolean
     },

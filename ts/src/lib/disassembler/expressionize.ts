@@ -3,12 +3,8 @@ import { PushValue as Value } from "avm1-types/push-value";
 import { PushValueType as ValueType } from "avm1-types/push-value-type";
 import { Action } from "avm1-types/raw/action";
 import { Push } from "avm1-types/raw/actions/index";
-import { makeCallExpression } from "../as2-tree/call-expression";
-import { Expression } from "../as2-tree/expression";
-import { makeIdentifier } from "../as2-tree/identifier";
-import { makeInput } from "../as2-tree/partial/input";
-import { makeUnaryExpression } from "../as2-tree/unary-expression";
-import { UnaryOperator } from "../as2-tree/unary-operator";
+import { Expression } from "../as2-types/expression";
+import { UnaryOperator } from "../as2-types/unary-operator";
 import { Cfg } from "../cfg/cfg";
 import { EdgeType, ExpressionEdge } from "../cfg/edge";
 import { NodeType, SimpleNode } from "../cfg/node";
@@ -39,14 +35,36 @@ function expressionizeAction(action: Action): ExpressionEdge[] | undefined {
     case ActionType.Not:
       return [createExpressionEdge(
         1,
-        makeUnaryExpression(UnaryOperator.LogicalNot, makeInput(0)),
+        {
+          type: "UnaryExpression",
+          loc: null,
+          operator: UnaryOperator.LogicalNot,
+          argument: {
+            type: "OpTemporary",
+            loc: null,
+            id: 0,
+          },
+        },
       )];
     case ActionType.Push:
       return expressionizePush(action);
     case ActionType.Trace:
       return [createVoidExpressionEdge(
         1,
-        makeCallExpression(makeIdentifier("trace"), [makeInput(0)]),
+        {
+          type: "CallExpression",
+          loc: null,
+          callee: {
+            type: "Identifier",
+            loc: null,
+            name: "trace",
+          },
+          arguments: [{
+            type: "OpTemporary",
+            loc: null,
+            id: 0,
+          }],
+        },
       )];
     default:
       return undefined;
@@ -65,11 +83,11 @@ function expressionizePush(action: Push): ExpressionEdge[] {
 function avm1ValueToAs2Expression(value: Value): Expression {
   switch (value.type) {
     case ValueType.Boolean:
-      return {type: "boolean-literal", value: value.value};
+      return {type: "BooleanLiteral", loc: null, value: value.value};
     case ValueType.Constant:
-      return {type: "_constant", id: value.value};
+      return {type: "OpConstant", loc: null, id: value.value};
     case ValueType.String:
-      return {type: "string-literal", value: value.value};
+      return {type: "StringLiteral", loc: null, value: value.value};
     default:
       throw new Error(`Unknown ValueType variant: ${value.type}`);
   }
